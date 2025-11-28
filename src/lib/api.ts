@@ -63,6 +63,9 @@ export const api = {
     valor: number
   }) => request('/entradas', { method: 'POST', body: payload }),
   getEntradas: (competenciaId: number | string) => request(`/entradas/${competenciaId}`),
+  updateEntrada: (id: number | string, payload: { data?: string; tipo_renda?: string; descricao?: string; valor?: number }) =>
+    request(`/entradas/${id}`, { method: 'PATCH', body: payload }),
+  deleteEntrada: (id: number | string) => request(`/entradas/${id}`, { method: 'DELETE' }),
 
   // Formas de pagamento
   createFormaPagamento: (payload: { user_id: number | string; tipo: string }) =>
@@ -89,6 +92,24 @@ export const api = {
   ) => request(`/gastos-variaveis/${id}`, { method: 'PATCH', body: payload }),
   deleteGastoVariavel: (id: number | string) => request(`/gastos-variaveis/${id}`, { method: 'DELETE' }),
 
+  // Gastos fixos
+  createGastoFixo: (payload: {
+    user_id: number | string
+    competencia_id: number | string
+    categoria_id: number | string
+    forma_pagamento_id: number | string
+    data: string
+    descricao: string
+    valor: number
+    pago: boolean
+  }) => request('/gastos-fixos', { method: 'POST', body: payload }),
+  getGastosFixos: (competenciaId: number | string) => request(`/gastos-fixos/${competenciaId}`),
+  updateGastoFixo: (
+    id: number | string,
+    payload: { data?: string; descricao?: string; valor?: number; pago?: boolean; categoria_id?: number | string; forma_pagamento_id?: number | string }
+  ) => request(`/gastos-fixos/${id}`, { method: 'PATCH', body: payload }),
+  deleteGastoFixo: (id: number | string) => request(`/gastos-fixos/${id}`, { method: 'DELETE' }),
+
   // Investimentos
   createInvestimento: (payload: {
     user_id: number | string
@@ -97,7 +118,10 @@ export const api = {
     descricao: string
     valor: number
   }) => request('/investimentos', { method: 'POST', body: payload }),
-  getInvestimentos: (competenciaId: number | string) => request(`/investimentos/${competenciaId}`)
+  getInvestimentos: (competenciaId: number | string) => request(`/investimentos/${competenciaId}`),
+  updateInvestimento: (id: number | string, payload: { data?: string; descricao?: string; valor?: number }) =>
+    request(`/investimentos/${id}`, { method: 'PATCH', body: payload }),
+  deleteInvestimento: (id: number | string) => request(`/investimentos/${id}`, { method: 'DELETE' })
 }
 
 export type ApiClient = typeof api
