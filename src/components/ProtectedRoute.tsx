@@ -31,7 +31,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   if (loading) {
     return (
       <main className="ka-container py-10">
-        <div className="ka-card p-6">Verificando sessão...</div>
+        <div className="ka-card p-6 flex items-center gap-3">
+          <img src="/logo-kw-120.png" alt="Financeiro KW" className="h-6 w-6 rounded" loading="lazy" />
+          <span>Verificando sessão...</span>
+        </div>
       </main>
     )
   }

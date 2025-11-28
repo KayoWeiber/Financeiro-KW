@@ -79,7 +79,7 @@ const Home: React.FC = () => {
             }}
           >
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-white/15" />
+              <img src="/logo-kw-120.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white/10 p-1 object-contain" loading="lazy" />
               <div>
                 <h1 className="text-2xl font-bold leading-tight">Financeiro KW</h1>
                 <p className="text-sm opacity-90">Escolha uma opção para continuar</p>

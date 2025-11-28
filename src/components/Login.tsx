@@ -58,7 +58,7 @@ const Login: React.FC = () => {
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <div className="inline-flex items-center gap-2">
-
+            <img src="/logo-kw-120.png" alt="Financeiro KW" className="h-9 w-9 rounded-lg" loading="lazy" />
             <h1 className="text-2xl font-bold" style={{ color: palette.primary }}>Financeiro KW</h1>
           </div>
           <p className="text-sm mt-2 opacity-75">Acesso seguro à sua área financeira</p>
