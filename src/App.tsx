@@ -9,9 +9,14 @@ function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        {/* Rotas públicas */}
         <Route path="/login" element={<Login />} />
-        <Route path="*" element={<NotFound />} />
+
+        {/* Todas as demais rotas são protegidas por padrão */}
+        <Route element={<ProtectedRoute />}> 
+          <Route path="/" element={<Home />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Routes>
     </>
   )

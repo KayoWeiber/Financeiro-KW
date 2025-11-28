@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Outlet } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 
-type ProtectedRouteProps = {
-  children: React.ReactNode
-}
+type ProtectedRouteProps = { children?: React.ReactNode }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const [loading, setLoading] = useState(true)
@@ -42,7 +40,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" replace />
   }
 
-  return <>{children}</>
+  return <>{children ? children : <Outlet />}</>
 }
 
 export default ProtectedRoute

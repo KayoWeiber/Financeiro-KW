@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { useNavigate } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
+import { api } from '../lib/api'
 
 const palette = {
   primary: '#0038A8',
@@ -25,11 +26,26 @@ const Login: React.FC = () => {
     setLoading(true)
     setError(null)
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
     if (error) {
+      setLoading(false)
       setError(error.message)
       return
     }
+
+    // Obter UID do usuário conectado (Supabase)
+    const { data: userData } = await supabase.auth.getUser()
+    const uid = userData.user?.id
+    if (uid) {
+      localStorage.setItem('kw_uid', uid)
+      try {
+        // Tenta conexão com API (healthcheck)
+        await api.health()
+      } catch (apiErr) {
+        console.warn('Falha ao conectar à API:', apiErr)
+      }
+    }
+
+    setLoading(false)
     navigate('/')
   }
 
