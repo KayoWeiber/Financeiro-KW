@@ -242,6 +242,7 @@ const Dashboard: React.FC = () => {
       if (!m) return 0
       return m.entradas - m.despesas - m.investido
     })
+    const entradasPorMes = Array.from({ length: 12 }, (_, i) => (byMonth[i]?.entradas || 0))
     const despesasPorMes = Array.from({ length: 12 }, (_, i) => (byMonth[i]?.despesas || 0))
     const categorias = Object.entries(byCategoria).map(([k, v]) => ({ key: k, total: v }))
     const pagamentos = Object.entries(byPagamento).map(([k, v]) => ({ key: k, total: v }))
@@ -253,6 +254,7 @@ const Dashboard: React.FC = () => {
       vale,
       netEntradasMinusVale: entradas - vale,
       saldoFinalMes,
+      entradasPorMes,
       despesasPorMes,
       categorias,
       pagamentos
@@ -342,10 +344,14 @@ const Dashboard: React.FC = () => {
 
         {/* Charts */}
         <Section title="Gráficos">
-          <div className="grid lg:grid-cols-2 gap-6">
+          <div className="grid lg:grid-cols-1 gap-6">
             <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
               <div className="text-sm font-medium mb-2">Saldo final por mês</div>
               <MiniBar data={totals.saldoFinalMes} labels={mesesPt} color="#2ECC71" showValues />
+            </div>
+            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+              <div className="text-sm font-medium mb-2">Entradas por mês</div>
+              <MiniBar data={totals.entradasPorMes} labels={mesesPt} color="#0038A8" showValues />
             </div>
             <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
               <div className="text-sm font-medium mb-2">Despesas por mês</div>
