@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { BarChart3, CreditCard, PieChart, Wallet, TrendingUp, Pencil, Trash2, X, Check } from 'lucide-react'
 import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
@@ -51,6 +51,7 @@ const mesesPt = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','
 
 const CompetenciaView: React.FC = () => {
   const { id } = useParams()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [competenciaAtual, setCompetenciaAtual] = useState<Competencia | null>(null)
@@ -398,12 +399,15 @@ const CompetenciaView: React.FC = () => {
         {/* Header */}
         <header>
           <div className="rounded-2xl p-6 shadow-sm bg-[linear-gradient(135deg,#f5f7fa,#e4ebf3)] border border-gray-200">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
               <img src="/logo-kw-120-blue.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white p-1 object-contain border border-gray-200" loading="lazy" />
               <div>
                 <h1 className="text-2xl font-bold leading-tight text-gray-800">{tituloMes}</h1>
                 <p className="text-sm text-gray-600">Acompanhe entradas, despesas, investimentos e saldo</p>
               </div>
+              </div>
+              <button type="button" onClick={()=>navigate('/')} className="rounded-md bg-gray-800 hover:bg-gray-900 text-white text-sm px-4 py-2 cursor-pointer" title="Voltar ao menu">Menu</button>
             </div>
           </div>
         </header>
