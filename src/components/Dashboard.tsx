@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { Wallet, CreditCard, TrendingUp, BarChart3, PieChart } from 'lucide-react'
 import { Pie } from 'react-chartjs-2'
@@ -93,6 +94,7 @@ function formatBRL(n: number) {
 }
 
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [competencias, setCompetencias] = useState<Competencia[]>([])
@@ -307,6 +309,14 @@ const Dashboard: React.FC = () => {
                     size="sm"
                   />
                 </div>
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="rounded-md bg-gray-800 hover:bg-gray-900 text-white text-xs px-3 py-2 shadow-sm transition-colors cursor-pointer"
+                  title="Voltar ao menu"
+                >
+                  Menu
+                </button>
                 {loading && <span className="text-xs opacity-70">Carregando...</span>}
                 {error && <span className="text-xs text-red-600">{error}</span>}
               </div>
