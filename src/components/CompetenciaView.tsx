@@ -317,9 +317,17 @@ const CompetenciaView: React.FC = () => {
   const saveVar = async (id:string) => {
     try {
       setSubmitting('edit-var')
-      const payload = { data: editVarValues.data, descricao: editVarValues.descricao, valor: Number(editVarValues.valor)||0, categoria_id: editVarValues.categoria_id, forma_pagamento_id: editVarValues.forma_pagamento_id }
-      await api.updateGastoVariavel(id, { data: payload.data, descricao: payload.descricao, valor: payload.valor })
-      setGastosVariaveis(prev => prev.map(g=> g.id===id ? { ...g, ...payload } : g))
+      const current = gastosVariaveis.find(g=> g.id===id)
+      if (!current) return
+      const diffs: Array<Promise<unknown>> = []
+      if (editVarValues.data && editVarValues.data !== current.data) diffs.push(api.updateGastoVariavel(id, 'data', editVarValues.data))
+      if (editVarValues.descricao !== current.descricao) diffs.push(api.updateGastoVariavel(id, 'descricao', editVarValues.descricao))
+      const valorNum = Number(editVarValues.valor)||0
+      if (valorNum !== current.valor) diffs.push(api.updateGastoVariavel(id, 'valor', valorNum))
+      if (editVarValues.categoria_id !== current.categoria_id) diffs.push(api.updateGastoVariavel(id, 'categoria_id', editVarValues.categoria_id))
+      if (editVarValues.forma_pagamento_id !== current.forma_pagamento_id) diffs.push(api.updateGastoVariavel(id, 'forma_pagamento_id', editVarValues.forma_pagamento_id))
+      if (diffs.length) await Promise.all(diffs)
+      setGastosVariaveis(prev => prev.map(g=> g.id===id ? { ...g, data: editVarValues.data, descricao: editVarValues.descricao, valor: valorNum, categoria_id: editVarValues.categoria_id, forma_pagamento_id: editVarValues.forma_pagamento_id } : g))
       setEditingVar(null)
     } finally { setSubmitting(null) }
   }
@@ -500,7 +508,7 @@ const CompetenciaView: React.FC = () => {
             </select>
             <input required placeholder="Descrição" className="rounded-md border px-2 py-1" value={formEntrada.descricao} onChange={e=>setFormEntrada(f=>({...f,descricao:e.target.value}))} />
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formEntrada.valor} onChange={e=>setFormEntrada(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='entrada'} className="rounded-md bg-blue-600 text-white text-sm px-3 py-1 disabled:opacity-50">{submitting==='entrada'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='entrada'} className="rounded-md bg-gray-800 hover:bg-gray-900 text-white text-sm px-3 py-1 disabled:opacity-50 cursor-pointer">{submitting==='entrada'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -521,8 +529,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><input className="border rounded px-1 py-0.5 text-xs" value={editEntradaValues.descricao} onChange={ev=>setEditEntradaValues(v=>({...v,descricao:ev.target.value}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editEntradaValues.valor} onChange={ev=>setEditEntradaValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveEntrada(e)} className="text-green-600" title="Salvar"><Check size={16} /></button>
-                        <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
+                        <button type="button" onClick={()=>saveEntrada(e)} className="text-green-600 cursor-pointer" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={cancelAll} className="text-red-600 cursor-pointer" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
                   ) : (
@@ -551,7 +559,7 @@ const CompetenciaView: React.FC = () => {
             <input required type="date" className="rounded-md border px-2 py-1" value={formInvest.data} onChange={e=>setFormInvest(f=>({...f,data:e.target.value}))} />
             <input required placeholder="Descrição" className="rounded-md border px-2 py-1" value={formInvest.descricao} onChange={e=>setFormInvest(f=>({...f,descricao:e.target.value}))} />
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formInvest.valor} onChange={e=>setFormInvest(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='invest'} className="rounded-md bg-blue-600 text-white text-sm px-3 py-1 disabled:opacity-50">{submitting==='invest'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='invest'} className="rounded-md bg-gray-800 hover:bg-gray-900 text-white text-sm px-3 py-1 disabled:opacity-50 cursor-pointer">{submitting==='invest'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -570,8 +578,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><input className="border rounded px-1 py-0.5 text-xs" value={editInvestValues.descricao} onChange={ev=>setEditInvestValues(v=>({...v,descricao:ev.target.value}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editInvestValues.valor} onChange={ev=>setEditInvestValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveInvest(i.id)} className="text-green-600" title="Salvar"><Check size={16} /></button>
-                        <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
+                        <button type="button" onClick={()=>saveInvest(i.id)} className="text-green-600 cursor-pointer" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={cancelAll} className="text-red-600 cursor-pointer" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
                   ) : (
@@ -579,8 +587,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2">{formatDateDisplay(i.data)}</td>
                       <td className="p-2">{i.descricao}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(i.valor)}
-                        <button type="button" onClick={()=> startEditInvest(i)} className="text-blue-600" title="Editar"><Pencil size={14} /></button>
-                        <button type="button" onClick={()=> deleteInvest(i.id)} className="text-red-600" title="Remover"><Trash2 size={14} /></button>
+                        <button type="button" onClick={()=> startEditInvest(i)} className="text-blue-600 cursor-pointer" title="Editar"><Pencil size={14} /></button>
+                        <button type="button" onClick={()=> deleteInvest(i.id)} className="text-red-600 cursor-pointer" title="Remover"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   )
@@ -616,7 +624,7 @@ const CompetenciaView: React.FC = () => {
               <input type="checkbox" checked={formFixos.pago} onChange={e=>setFormFixos(f=>({...f,pago:e.target.checked}))} /> Pago
             </label>
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formFixos.valor} onChange={e=>setFormFixos(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='fixos'} className="rounded-md bg-linear-to-r from-blue-600 to-orange-500 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow">{submitting==='fixos'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='fixos'} className="rounded-md bg-gray-800 hover:bg-gray-900 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow cursor-pointer">{submitting==='fixos'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -641,8 +649,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><input type="checkbox" checked={editFixoValues.pago} onChange={ev=>setEditFixoValues(v=>({...v,pago:ev.target.checked}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editFixoValues.valor} onChange={ev=>setEditFixoValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveFixo(g)} className="text-green-600" title="Salvar"><Check size={16} /></button>
-                        <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
+                        <button type="button" onClick={()=>saveFixo(g)} className="text-green-600 cursor-pointer" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={cancelAll} className="text-red-600 cursor-pointer" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
                   ) : (
@@ -653,8 +661,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2">{formasPagamento.find(f=>f.id===g.forma_pagamento_id)?.tipo || '—'}</td>
                       <td className="p-2">{g.pago ? 'Sim' : 'Não'}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(g.valor)}
-                        <button type="button" onClick={()=> startEditFixo(g)} className="text-blue-600" title="Editar"><Pencil size={14} /></button>
-                        <button type="button" onClick={()=> deleteFixo(g.id)} className="text-red-600" title="Remover"><Trash2 size={14} /></button>
+                        <button type="button" onClick={()=> startEditFixo(g)} className="text-blue-600 cursor-pointer" title="Editar"><Pencil size={14} /></button>
+                        <button type="button" onClick={()=> deleteFixo(g.id)} className="text-red-600 cursor-pointer" title="Remover"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   )
@@ -688,7 +696,7 @@ const CompetenciaView: React.FC = () => {
               size="sm"
             />
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formVar.valor} onChange={e=>setFormVar(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='variaveis'} className="rounded-md bg-linear-to-r from-blue-600 to-orange-500 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow">{submitting==='variaveis'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='variaveis'} className="rounded-md bg-gray-800 hover:bg-gray-900 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow cursor-pointer">{submitting==='variaveis'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -711,8 +719,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><FancySelect value={editVarValues.forma_pagamento_id} onChange={v=>setEditVarValues(val=>({...val,forma_pagamento_id:v}))} options={formasPagamento.map(fp=>({value:fp.id,label:fp.tipo}))} size="sm" /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editVarValues.valor} onChange={ev=>setEditVarValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveVar(g.id)} className="text-green-600" title="Salvar"><Check size={16} /></button>
-                        <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
+                        <button type="button" onClick={()=>saveVar(g.id)} className="text-green-600 cursor-pointer" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={cancelAll} className="text-red-600 cursor-pointer" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
                   ) : (
@@ -722,8 +730,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2">{g.descricao}</td>
                       <td className="p-2">{formasPagamento.find(f=>f.id===g.forma_pagamento_id)?.tipo || '—'}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(g.valor)}
-                        <button type="button" onClick={()=> startEditVar(g)} className="text-blue-600" title="Editar"><Pencil size={14} /></button>
-                        <button type="button" onClick={()=> deleteVar(g.id)} className="text-red-600" title="Remover"><Trash2 size={14} /></button>
+                        <button type="button" onClick={()=> startEditVar(g)} className="text-blue-600 cursor-pointer" title="Editar"><Pencil size={14} /></button>
+                        <button type="button" onClick={()=> deleteVar(g.id)} className="text-red-600 cursor-pointer" title="Remover"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   )

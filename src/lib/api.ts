@@ -87,10 +87,12 @@ export const api = {
     valor: number
   }) => request('/gastos-variaveis', { method: 'POST', body: payload }),
   getGastosVariaveis: (competenciaId: number | string) => request(`/gastos-variaveis/${competenciaId}`),
+  // PATCH dinâmico: envia { campo, valor }
   updateGastoVariavel: (
     id: number | string,
-    payload: { data: string; descricao: string; valor: number }
-  ) => request(`/gastos-variaveis/${id}`, { method: 'PATCH', body: payload }),
+    campo: 'data' | 'descricao' | 'valor' | 'categoria_id' | 'forma_pagamento_id',
+    valor: unknown
+  ) => request(`/gastos-variaveis/${id}`, { method: 'PATCH', body: { campo, valor } }),
   deleteGastoVariavel: (id: number | string) => request(`/gastos-variaveis/${id}`, { method: 'DELETE' }),
 
   // Gastos fixos
