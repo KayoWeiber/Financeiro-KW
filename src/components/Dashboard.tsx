@@ -60,28 +60,35 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 // (Card removido - não utilizado após refatoração)
 
 const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string; showValues?: boolean }> = ({ data, labels = [], color = '#0038A8', showValues = false }) => {
-  const max = Math.max(1, ...data)
+  const max = Math.max(1, ...data.map(n => Math.abs(n)))
   return (
-    <div className="flex gap-1">
+    <div className="relative flex gap-1 items-end h-40 pt-4">
       {data.map((v, i) => {
-        const heightPct = (v / max) * 100
         const label = labels[i] || String(i + 1)
+        const heightPct = (Math.abs(v) / max) * 100
+        const valueStr = v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        const charLen = valueStr.length
+        // Offset baseado no tamanho do texto (mais caracteres => mais afastado para não sobrepor topo da barra)
+        const offsetPx = 4 + Math.min(28, charLen * 1.2)
         return (
-          <div key={i} className="flex-1 flex flex-col items-center min-w-0">
-            <div className="relative w-full h-24 flex items-end">
+          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end min-w-0 relative">
+            {showValues && (
               <div
-                title={`${label}: ${v.toLocaleString('pt-BR',{ style:'currency', currency:'BRL'})}`}
-                className="w-full rounded bg-linear-to-t from-black/15 to-black/5 overflow-hidden group"
-                style={{ height: `${heightPct}%`, background: color }}
+                className="absolute left-1/2 -translate-x-1/2 text-[10px] font-medium text-gray-800 whitespace-nowrap pointer-events-none select-none"
+                style={{ bottom: `calc(${heightPct}% + ${offsetPx}px)` }}
+                title={valueStr}
               >
-                {showValues && heightPct > 12 && (
-                  <div className="absolute inset-x-0 top-0 text-[10px] leading-none text-white/90 px-1 py-0.5 bg-black/30 backdrop-blur-sm">
-                    {v.toLocaleString('pt-BR',{ style:'currency', currency:'BRL'})}
-                  </div>
-                )}
+                {valueStr}
               </div>
+            )}
+            <div className="w-full flex items-end h-full">
+              <div
+                title={`${label}: ${valueStr}`}
+                className="w-full rounded-md transition-all duration-500 ease-out shadow-sm"
+                style={{ height: `${heightPct}%`, background: v < 0 ? '#E74C3C' : color, opacity: 0.95 }}
+              />
             </div>
-            <div className="mt-1 text-[11px] leading-tight text-center truncate w-full opacity-80" title={label}>{label}</div>
+            <div className="mt-2 text-[11px] leading-tight text-center truncate w-full opacity-70" title={label}>{label}</div>
           </div>
         )
       })}
