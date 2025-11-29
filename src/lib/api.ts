@@ -127,6 +127,11 @@ export const api = {
   updateInvestimento: (id: number | string, payload: { data?: string; descricao?: string; valor?: number }) =>
     request(`/investimentos/${id}`, { method: 'PATCH', body: payload }),
   deleteInvestimento: (id: number | string) => request(`/investimentos/${id}`, { method: 'DELETE' })
+  ,
+
+  // Resumo agregado por competencia (entradas, despesas variáveis/fixas, investimentos)
+  getResumo: (userId: number | string, competenciaId: number | string) =>
+    request(`/resumo/${userId}/${competenciaId}`)
 }
 
 export type ApiClient = typeof api
