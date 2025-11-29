@@ -5,6 +5,8 @@ import { Pie, Bar } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement } from 'chart.js'
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement)
 import { api } from '../lib/api'
+import FancySelect, { type FancyOption } from './ui/FancySelect'
+import { getCategoryColor, gradientFor } from '../lib/colors'
 
 const palette = {
   primary: '#0038A8',
@@ -27,12 +29,15 @@ const StatCard = ({ icon, title, value, accent }: { icon: React.ReactNode; title
   </div>
 )
 
-const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
-  <section className="rounded-2xl p-6 shadow-sm border border-black/10 bg-white">
-    <h2 className="text-xl font-semibold mb-4">{title}</h2>
-    {children}
-  </section>
-)
+const Section = ({ title, children }: { title: string; children: React.ReactNode }) => {
+  const bg = gradientFor(title)
+  return (
+    <section className="rounded-2xl p-6 shadow-sm" style={{ background: bg }}>
+      <h2 className="text-lg font-semibold mb-4 text-gray-800">{title}</h2>
+      {children}
+    </section>
+  )
+}
 
 type Competencia = { id: string; ano: number; mes: number; ativa?: boolean }
 type Entrada = { id: string; data: string; tipo_renda: string; descricao: string; valor: number }
@@ -151,13 +156,15 @@ const CompetenciaView: React.FC = () => {
     return map
   }, [gastosFixos, gastosVariaveis, formasPagamento])
 
+  const pieLabels = Object.keys(gastosPorCategoria)
   const pieData = {
-    labels: Object.keys(gastosPorCategoria),
+    labels: pieLabels,
     datasets: [
       {
-        data: Object.values(gastosPorCategoria),
-        backgroundColor: ['#0038A8','#FF8800','#2ECC71','#E74C3C','#8E44AD','#16A085','#F1C40F','#D35400'],
-        borderWidth: 0
+        data: pieLabels.map(l => gastosPorCategoria[l]),
+        backgroundColor: pieLabels.map(l => getCategoryColor(l)),
+        borderWidth: 0,
+        hoverOffset: 6
       }
     ]
   }
@@ -378,16 +385,16 @@ const CompetenciaView: React.FC = () => {
   }, [competenciaAtual, id])
 
   return (
-    <div className="min-h-screen px-6 py-8" style={{ background: palette.background, color: palette.contrast }}>
+    <div className="min-h-screen px-6 py-8 bg-white text-gray-900">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Header */}
         <header>
-          <div className="rounded-2xl p-6 text-white shadow-sm" style={{ background: `linear-gradient(135deg, ${palette.primary}, ${palette.secondary})` }}>
+          <div className="rounded-2xl p-6 shadow-sm bg-[linear-gradient(135deg,#f5f7fa,#e4ebf3)] border border-gray-200">
             <div className="flex items-center gap-3">
-              <img src="/logo-kw-120.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white/10 p-1 object-contain" loading="lazy" />
+              <img src="/logo-kw-120-blue.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white p-1 object-contain border border-gray-200" loading="lazy" />
               <div>
-                <h1 className="text-2xl font-bold leading-tight">{tituloMes}</h1>
-                <p className="text-sm opacity-90">Acompanhe entradas, despesas, investimentos e saldo</p>
+                <h1 className="text-2xl font-bold leading-tight text-gray-800">{tituloMes}</h1>
+                <p className="text-sm text-gray-600">Acompanhe entradas, despesas, investimentos e saldo</p>
               </div>
             </div>
           </div>
@@ -411,17 +418,17 @@ const CompetenciaView: React.FC = () => {
         {/* Mid summary card */}
         <Section title="Resumo">
           <div className="grid sm:grid-cols-3 gap-4">
-            <div className="rounded-xl p-4 border border-black/10">
-              <div className="text-xs opacity-70">Investido</div>
-              <div className="text-lg font-semibold">{formatCurrency(totalInvestido)}</div>
+            <div className="rounded-xl p-4 bg-white border border-gray-200">
+              <div className="text-xs text-gray-600">Investido</div>
+              <div className="text-lg font-semibold text-gray-800">{formatCurrency(totalInvestido)}</div>
             </div>
-            <div className="rounded-xl p-4 border border-black/10">
-              <div className="text-xs opacity-70">Saídas</div>
-              <div className="text-lg font-semibold">{formatCurrency(totalDespesas)}</div>
+            <div className="rounded-xl p-4 bg-white border border-gray-200">
+              <div className="text-xs text-gray-600">Saídas</div>
+              <div className="text-lg font-semibold text-gray-800">{formatCurrency(totalDespesas)}</div>
             </div>
-            <div className="rounded-xl p-4 border border-black/10">
-              <div className="text-xs opacity-70">Saldo Atual</div>
-              <div className="text-lg font-semibold">{formatCurrency(saldo)}</div>
+            <div className="rounded-xl p-4 bg-white border border-gray-200">
+              <div className="text-xs text-gray-600">Saldo Atual</div>
+              <div className="text-lg font-semibold text-gray-800">{formatCurrency(saldo)}</div>
             </div>
           </div>
         </Section>
@@ -588,22 +595,28 @@ const CompetenciaView: React.FC = () => {
 
         {/* Gastos Fixos */}
         <Section title="Gastos Fixos">
-          <form onSubmit={handleSubmitFixos} className="grid lg:grid-cols-7 gap-2 mb-4 text-sm">
-            <select required className="rounded-md border px-2 py-1" value={formFixos.categoria_id} onChange={e=>setFormFixos(f=>({...f,categoria_id:e.target.value}))}>
-              <option value="">Categoria</option>
-              {categorias.map(c=> <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
+          <form onSubmit={handleSubmitFixos} className="grid lg:grid-cols-7 gap-3 mb-4 text-xs lg:text-sm">
+            <FancySelect
+              value={formFixos.categoria_id}
+              onChange={v=>setFormFixos(f=>({...f,categoria_id:v}))}
+              options={categorias.map(c=>({ value:c.id, label:c.nome, color: getCategoryColor(c.nome) })) as FancyOption[]}
+              placeholder="Categoria"
+              size="sm"
+            />
             <input required type="date" className="rounded-md border px-2 py-1" value={formFixos.data} onChange={e=>setFormFixos(f=>({...f,data:e.target.value}))} />
             <input required placeholder="Descrição" className="rounded-md border px-2 py-1" value={formFixos.descricao} onChange={e=>setFormFixos(f=>({...f,descricao:e.target.value}))} />
-            <select required className="rounded-md border px-2 py-1" value={formFixos.forma_pagamento_id} onChange={e=>setFormFixos(f=>({...f,forma_pagamento_id:e.target.value}))}>
-              <option value="">Pagamento</option>
-              {formasPagamento.map(f=> <option key={f.id} value={f.id}>{f.tipo}</option>)}
-            </select>
+            <FancySelect
+              value={formFixos.forma_pagamento_id}
+              onChange={v=>setFormFixos(f=>({...f,forma_pagamento_id:v}))}
+              options={formasPagamento.map(fp=>({ value:fp.id, label:fp.tipo })) as FancyOption[]}
+              placeholder="Pagamento"
+              size="sm"
+            />
             <label className="inline-flex items-center gap-1 text-xs">
               <input type="checkbox" checked={formFixos.pago} onChange={e=>setFormFixos(f=>({...f,pago:e.target.checked}))} /> Pago
             </label>
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formFixos.valor} onChange={e=>setFormFixos(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='fixos'} className="rounded-md bg-blue-600 text-white text-sm px-3 py-1 disabled:opacity-50">{submitting==='fixos'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='fixos'} className="rounded-md bg-linear-to-r from-blue-600 to-orange-500 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow">{submitting==='fixos'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -621,10 +634,10 @@ const CompetenciaView: React.FC = () => {
                 {gastosFixos.map(g=> (
                   editingFixo===g.id ? (
                     <tr key={g.id} className="border-t bg-blue-50">
-                      <td className="p-2"><select className="border rounded px-1 py-0.5 text-xs" value={editFixoValues.categoria_id} onChange={ev=>setEditFixoValues(v=>({...v,categoria_id:ev.target.value}))}>{categorias.map(c=> <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
+                      <td className="p-2"><FancySelect value={editFixoValues.categoria_id} onChange={v=>setEditFixoValues(val=>({...val,categoria_id:v}))} options={categorias.map(c=>({value:c.id,label:c.nome,color:getCategoryColor(c.nome)}))} size="sm" /></td>
                       <td className="p-2"><input type="date" className="border rounded px-1 py-0.5 text-xs" value={editFixoValues.data} onChange={ev=>setEditFixoValues(v=>({...v,data:ev.target.value}))} /></td>
                       <td className="p-2"><input className="border rounded px-1 py-0.5 text-xs" value={editFixoValues.descricao} onChange={ev=>setEditFixoValues(v=>({...v,descricao:ev.target.value}))} /></td>
-                      <td className="p-2"><select className="border rounded px-1 py-0.5 text-xs" value={editFixoValues.forma_pagamento_id} onChange={ev=>setEditFixoValues(v=>({...v,forma_pagamento_id:ev.target.value}))}>{formasPagamento.map(f=> <option key={f.id} value={f.id}>{f.tipo}</option>)}</select></td>
+                      <td className="p-2"><FancySelect value={editFixoValues.forma_pagamento_id} onChange={v=>setEditFixoValues(val=>({...val,forma_pagamento_id:v}))} options={formasPagamento.map(fp=>({value:fp.id,label:fp.tipo}))} size="sm" /></td>
                       <td className="p-2"><input type="checkbox" checked={editFixoValues.pago} onChange={ev=>setEditFixoValues(v=>({...v,pago:ev.target.checked}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editFixoValues.valor} onChange={ev=>setEditFixoValues(v=>({...v,valor:ev.target.value}))} />
@@ -657,19 +670,25 @@ const CompetenciaView: React.FC = () => {
 
         {/* Gastos Variáveis */}
         <Section title="Gastos Variáveis">
-          <form onSubmit={handleSubmitVar} className="grid lg:grid-cols-6 gap-2 mb-4 text-sm">
-            <select required className="rounded-md border px-2 py-1" value={formVar.categoria_id} onChange={e=>setFormVar(f=>({...f,categoria_id:e.target.value}))}>
-              <option value="">Categoria</option>
-              {categorias.map(c=> <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
+          <form onSubmit={handleSubmitVar} className="grid lg:grid-cols-6 gap-3 mb-4 text-xs lg:text-sm">
+            <FancySelect
+              value={formVar.categoria_id}
+              onChange={v=>setFormVar(f=>({...f,categoria_id:v}))}
+              options={categorias.map(c=>({ value:c.id, label:c.nome, color:getCategoryColor(c.nome) }))}
+              placeholder="Categoria"
+              size="sm"
+            />
             <input required type="date" className="rounded-md border px-2 py-1" value={formVar.data} onChange={e=>setFormVar(f=>({...f,data:e.target.value}))} />
             <input required placeholder="Descrição" className="rounded-md border px-2 py-1" value={formVar.descricao} onChange={e=>setFormVar(f=>({...f,descricao:e.target.value}))} />
-            <select required className="rounded-md border px-2 py-1" value={formVar.forma_pagamento_id} onChange={e=>setFormVar(f=>({...f,forma_pagamento_id:e.target.value}))}>
-              <option value="">Pagamento</option>
-              {formasPagamento.map(f=> <option key={f.id} value={f.id}>{f.tipo}</option>)}
-            </select>
+            <FancySelect
+              value={formVar.forma_pagamento_id}
+              onChange={v=>setFormVar(f=>({...f,forma_pagamento_id:v}))}
+              options={formasPagamento.map(fp=>({ value:fp.id, label:fp.tipo }))}
+              placeholder="Pagamento"
+              size="sm"
+            />
             <input required type="number" step="0.01" placeholder="Valor" className="rounded-md border px-2 py-1" value={formVar.valor} onChange={e=>setFormVar(f=>({...f,valor:e.target.value}))} />
-            <button disabled={submitting==='variaveis'} className="rounded-md bg-blue-600 text-white text-sm px-3 py-1 disabled:opacity-50">{submitting==='variaveis'?'Salvando...':'Adicionar'}</button>
+            <button disabled={submitting==='variaveis'} className="rounded-md bg-linear-to-r from-blue-600 to-orange-500 text-white font-medium px-3 py-1.5 disabled:opacity-50 shadow">{submitting==='variaveis'?'Salvando...':'Adicionar'}</button>
           </form>
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
@@ -686,10 +705,10 @@ const CompetenciaView: React.FC = () => {
                 {gastosVariaveis.map(g=> (
                   editingVar===g.id ? (
                     <tr key={g.id} className="border-t bg-blue-50">
-                      <td className="p-2"><select className="border rounded px-1 py-0.5 text-xs" value={editVarValues.categoria_id} onChange={ev=>setEditVarValues(v=>({...v,categoria_id:ev.target.value}))}>{categorias.map(c=> <option key={c.id} value={c.id}>{c.nome}</option>)}</select></td>
+                      <td className="p-2"><FancySelect value={editVarValues.categoria_id} onChange={v=>setEditVarValues(val=>({...val,categoria_id:v}))} options={categorias.map(c=>({value:c.id,label:c.nome,color:getCategoryColor(c.nome)}))} size="sm" /></td>
                       <td className="p-2"><input type="date" className="border rounded px-1 py-0.5 text-xs" value={editVarValues.data} onChange={ev=>setEditVarValues(v=>({...v,data:ev.target.value}))} /></td>
                       <td className="p-2"><input className="border rounded px-1 py-0.5 text-xs" value={editVarValues.descricao} onChange={ev=>setEditVarValues(v=>({...v,descricao:ev.target.value}))} /></td>
-                      <td className="p-2"><select className="border rounded px-1 py-0.5 text-xs" value={editVarValues.forma_pagamento_id} onChange={ev=>setEditVarValues(v=>({...v,forma_pagamento_id:ev.target.value}))}>{formasPagamento.map(f=> <option key={f.id} value={f.id}>{f.tipo}</option>)}</select></td>
+                      <td className="p-2"><FancySelect value={editVarValues.forma_pagamento_id} onChange={v=>setEditVarValues(val=>({...val,forma_pagamento_id:v}))} options={formasPagamento.map(fp=>({value:fp.id,label:fp.tipo}))} size="sm" /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editVarValues.valor} onChange={ev=>setEditVarValues(v=>({...v,valor:ev.target.value}))} />
                         <button type="button" onClick={()=>saveVar(g.id)} className="text-green-600" title="Salvar"><Check size={16} /></button>
