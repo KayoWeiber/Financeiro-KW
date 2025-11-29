@@ -36,14 +36,32 @@ const Card: React.FC<{ title: string; value: string; accent?: string }> = ({ tit
   </div>
 )
 
-const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string }> = ({ data, labels = [], color = '#0038A8' }) => {
+const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string; showValues?: boolean }> = ({ data, labels = [], color = '#0038A8', showValues = false }) => {
   const max = Math.max(1, ...data)
   return (
-    <div className="flex items-end gap-1 h-24">
-      {data.map((v, i) => (
-        <div key={i} title={`${labels[i] || i + 1}: ${v.toLocaleString('pt-BR',{ style:'currency', currency:'BRL'})}`}
-          className="flex-1 bg-black/10 rounded" style={{ height: `${(v / max) * 100}%`, background: color }} />
-      ))}
+    <div className="flex gap-1">
+      {data.map((v, i) => {
+        const heightPct = (v / max) * 100
+        const label = labels[i] || String(i + 1)
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center min-w-0">
+            <div className="relative w-full h-24 flex items-end">
+              <div
+                title={`${label}: ${v.toLocaleString('pt-BR',{ style:'currency', currency:'BRL'})}`}
+                className="w-full rounded bg-linear-to-t from-black/15 to-black/5 overflow-hidden group"
+                style={{ height: `${heightPct}%`, background: color }}
+              >
+                {showValues && heightPct > 12 && (
+                  <div className="absolute inset-x-0 top-0 text-[10px] leading-none text-white/90 px-1 py-0.5 bg-black/30 backdrop-blur-sm">
+                    {v.toLocaleString('pt-BR',{ style:'currency', currency:'BRL'})}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="mt-1 text-[11px] leading-tight text-center truncate w-full opacity-80" title={label}>{label}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }
