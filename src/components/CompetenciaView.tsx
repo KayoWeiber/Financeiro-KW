@@ -131,12 +131,17 @@ const CompetenciaView: React.FC = () => {
 
   const formatCurrency = (v: number) => new Intl.NumberFormat('pt-BR',{ style:'currency', currency:'BRL'}).format(v || 0)
 
-  const totalEntradas = entradas.reduce((s,e)=> s + (e.valor||0),0)
-  const totalInvestido = investimentos.reduce((s,i)=> s + (i.valor||0),0)
-  const totalGastosFixos = gastosFixos.reduce((s,g)=> s + (g.valor||0),0)
-  const totalGastosVariaveis = gastosVariaveis.reduce((s,g)=> s + (g.valor||0),0)
-  const totalDespesas = totalGastosFixos + totalGastosVariaveis
-  const saldo = totalEntradas - totalDespesas - totalInvestido
+  const safeNum = (n: unknown) => {
+    const v = Number(n)
+    return Number.isFinite(v) ? v : 0
+  }
+  const totalEntradas = entradas.reduce((s,e)=> s + safeNum(e.valor),0)
+  const totalInvestido = investimentos.reduce((s,i)=> s + safeNum(i.valor),0)
+  const totalGastosFixos = gastosFixos.reduce((s,g)=> s + safeNum(g.valor),0)
+  const totalGastosVariaveis = gastosVariaveis.reduce((s,g)=> s + safeNum(g.valor),0)
+  const totalDespesas = safeNum(totalGastosFixos) + safeNum(totalGastosVariaveis)
+  const totalSaidas = totalDespesas
+  const saldo = safeNum(totalEntradas) - safeNum(totalDespesas) - safeNum(totalInvestido)
 
   // Aggregations for charts
   const gastosPorCategoria = useMemo(() => {
@@ -448,19 +453,32 @@ const CompetenciaView: React.FC = () => {
         {/* Charts */}
         <Section title="Gráficos">
           <div className="grid lg:grid-cols-2 gap-4">
+            {/* Resumo: Entradas vs Saídas vs Investido */}
             <div className="rounded-xl border border-black/10 p-4 h-72 flex flex-col">
               <div className="flex items-center gap-2 mb-2">
                 <PieChart size={18} color={palette.secondary} />
-                <span className="font-semibold">Gastos por Categoria</span>
+                <span className="font-semibold">Entradas, Saídas e Investido</span>
               </div>
-              {Object.keys(gastosPorCategoria).length === 0 ? (
+              {(totalEntradas === 0 && totalDespesas === 0 && totalInvestido === 0) ? (
                 <div className="text-xs opacity-70">Sem dados</div>
               ) : (
                 <div className="flex-1">
-                  <Pie data={pieData} options={{ maintainAspectRatio:false }} />
+                  <Pie 
+                    data={{
+                      labels: ['Entradas','Saídas','Investido'],
+                      datasets: [{
+                        data: [Number(totalEntradas)||0, Number(totalSaidas)||0, Number(totalInvestido)||0],
+                        backgroundColor: [palette.primary, palette.error, palette.secondary],
+                        borderWidth: 0,
+                        hoverOffset: 6
+                      }]
+                    }} 
+                    options={{ maintainAspectRatio:false }} 
+                  />
                 </div>
               )}
             </div>
+            {/* Gastos por Forma de Pagamento */}
             <div className="rounded-xl border border-black/10 p-4 h-72 flex flex-col">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={18} color={palette.primary} />
@@ -482,7 +500,6 @@ const CompetenciaView: React.FC = () => {
                           maxRotation:45,
                           minRotation:0,
                           autoSkip:true,
-                          // val (tick value) não utilizado; idx para acessar label
                           callback: (_val, idx) => {
                             const label = (barData.labels as string[])[idx] || ''
                             return label.length > 12 ? label.slice(0,10)+'…' : label
@@ -752,19 +769,55 @@ const CompetenciaView: React.FC = () => {
         {/* Charts by category and payment type */}
         <Section title="Análises">
           <div className="grid lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-black/10 p-6 text-center">
-              <div className="inline-flex items-center gap-2 mb-2">
+            {/* Resumo por Categoria */}
+            <div className="rounded-xl border border-black/10 p-4 flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
                 <PieChart size={18} color={palette.secondary} />
-                <span className="font-semibold">Categoria · Pizza</span>
+                <span className="font-semibold">Categorias</span>
               </div>
-              <div className="text-sm opacity-70">Em breve</div>
+              {Object.keys(gastosPorCategoria).length === 0 ? (
+                <div className="text-xs opacity-70">Sem dados</div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="h-56">
+                    <Pie data={pieData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false }}}} />
+                  </div>
+                  <ul className="space-y-2 text-sm">
+                    {Object.entries(gastosPorCategoria).sort((a,b)=> b[1]-a[1]).map(([nome, total]) => (
+                      <li key={nome} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background:getCategoryColor(nome) }} />
+                          <span className="truncate">{nome}</span>
+                        </span>
+                        <span className="font-medium">{formatCurrency(total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
-            <div className="rounded-xl border border-black/10 p-6 text-center">
-              <div className="inline-flex items-center gap-2 mb-2">
+
+            {/* Resumo por Forma de Pagamento */}
+            <div className="rounded-xl border border-black/10 p-4 flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={18} color={palette.primary} />
-                <span className="font-semibold">Pagamento · Barras</span>
+                <span className="font-semibold">Formas de Pagamento</span>
               </div>
-              <div className="text-sm opacity-70">Em breve</div>
+              {Object.keys(gastosPorPagamento).length === 0 ? (
+                <div className="text-xs opacity-70">Sem dados</div>
+              ) : (
+                <div className="h-56">
+                  <Bar 
+                    data={{ labels: barData.labels, datasets:[{ label:'Gastos', data: barData.datasets[0].data, backgroundColor:'#6b7280' }] }}
+                    options={{
+                      maintainAspectRatio:false,
+                      plugins:{ legend:{ display:false } },
+                      scales:{ x:{ ticks:{ autoSkip:true }}, y:{ beginAtZero:true }},
+                      elements:{ bar:{ borderRadius:4, borderSkipped:false }}
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </Section>
