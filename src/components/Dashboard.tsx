@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { api } from '../lib/api'
+import { Wallet, CreditCard, TrendingUp, BarChart3, PieChart } from 'lucide-react'
+import { Pie } from 'react-chartjs-2'
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
+import FancySelect, { type FancyOption } from './ui/FancySelect'
+import { gradientFor, getCategoryColor, getColorForId } from '../lib/colors'
+
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 type Competencia = { id: number | string; ano: number; mes: number; ativa?: boolean }
 
@@ -29,12 +36,27 @@ interface ResumoCompetencia {
 
 const mesesPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-const Card: React.FC<{ title: string; value: string; accent?: string }> = ({ title, value, accent = '#0038A8' }) => (
-  <div className="rounded-xl p-4 border border-black/10 bg-white">
-    <div className="text-xs opacity-70">{title}</div>
-    <div className="mt-1 text-2xl font-bold" style={{ color: accent }}>{value}</div>
+// Reuso de padrões de design do CompetenciaView
+const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; accent?: string }> = ({ icon, title, value, accent }) => (
+  <div className="rounded-2xl p-4 shadow-sm border border-black/10 bg-white flex items-center gap-3">
+    <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: accent || '#F0F4FF' }}>
+      {icon}
+    </div>
+    <div>
+      <div className="text-xs opacity-70">{title}</div>
+      <div className="text-lg font-semibold">{value}</div>
+    </div>
   </div>
 )
+
+const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <section className="rounded-2xl p-6 shadow-sm" style={{ background: gradientFor(title) }}>
+    <h2 className="text-lg font-semibold mb-4 text-gray-800">{title}</h2>
+    {children}
+  </section>
+)
+
+// (Card removido - não utilizado após refatoração)
 
 const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string; showValues?: boolean }> = ({ data, labels = [], color = '#0038A8', showValues = false }) => {
   const max = Math.max(1, ...data)
@@ -139,12 +161,15 @@ const Dashboard: React.FC = () => {
   const years = useMemo(() => Array.from(new Set(competencias.map(c => Number(c.ano)))).sort((a, b) => b - a), [competencias])
   const compsYear = useMemo(() => competencias.filter(c => Number(c.ano) === year), [competencias, year])
 
+  // Opções de anos para FancySelect
+  const yearOptions: FancyOption[] = years.map(y => ({ value: String(y), label: String(y) }))
+
   // Agregações usando resumoByComp
   const totals = useMemo(() => {
     let entradas = 0
     let despesas = 0
     let investido = 0
-    let vale = 0 // categorias com nome contendo 'vale'
+    let vale = 0
 
     const byMonth: Record<number, { entradas: number; despesas: number; investido: number }> = {}
     const byCategoria: Record<string, number> = {}
@@ -170,14 +195,12 @@ const Dashboard: React.FC = () => {
       byMonth[monthIndex].despesas += despesasVar + despesasFix
       byMonth[monthIndex].investido += investimentosTotal
 
-      // categorias variáveis
       resumo.despesas.variaveis.por_categoria.forEach(cat => {
         const key = String(cat.nome || cat.categoria_id)
         const val = Number(cat.total || 0)
         byCategoria[key] = (byCategoria[key] || 0) + val
         if (key.toLowerCase().includes('vale')) vale += val
       })
-      // categorias fixas
       resumo.despesas.fixas.por_categoria.forEach(cat => {
         const key = String(cat.nome || cat.categoria_id)
         const val = Number(cat.total || 0)
@@ -185,7 +208,6 @@ const Dashboard: React.FC = () => {
         if (key.toLowerCase().includes('vale')) vale += val
       })
 
-      // formas de pagamento (se endpoint trouxe combinado, usar; senão combinar variáveis + fixas)
       if (Array.isArray(resumo.formas_pagamento_total) && resumo.formas_pagamento_total.length) {
         resumo.formas_pagamento_total.forEach(fp => {
           const key = String(fp.tipo || fp.forma_pagamento_id)
@@ -228,87 +250,140 @@ const Dashboard: React.FC = () => {
     }
   }, [compsYear, resumoByComp])
 
+  // Dados para gráficos de pizza (categorias e formas de pagamento)
+  const pieCategoriasData = useMemo(() => {
+    const labels = totals.categorias.map(c => c.key)
+    const dataVals = totals.categorias.map(c => c.total)
+    return {
+      labels,
+      datasets: [
+        {
+          data: dataVals,
+          backgroundColor: labels.map(l => getCategoryColor(l)),
+          borderWidth: 0,
+          hoverOffset: 6
+        }
+      ]
+    }
+  }, [totals.categorias])
+
+  const piePagamentosData = useMemo(() => {
+    const labels = totals.pagamentos.map(p => p.key)
+    const dataVals = totals.pagamentos.map(p => p.total)
+    return {
+      labels,
+      datasets: [
+        {
+          data: dataVals,
+          backgroundColor: labels.map(l => getColorForId(l)),
+          borderWidth: 0,
+          hoverOffset: 6
+        }
+      ]
+    }
+  }, [totals.pagamentos])
+
   return (
-    <div className="min-h-[60vh] p-6">
-      <div className="mb-4 flex items-center gap-2">
-        <img src="/logo-kw-120.png" alt="Financeiro KW" className="h-7 w-7 rounded" loading="lazy" />
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-      </div>
-
-      {/* Filtro de Ano */}
-      <div className="mb-4 flex items-center gap-3">
-        <label className="text-sm opacity-70">Ano:</label>
-        <select
-          className="h-9 px-3 rounded border border-black/10 bg-white"
-          value={year ?? ''}
-          onChange={e => setYear(Number(e.target.value))}
-        >
-          {years.map(y => (
-            <option key={y} value={y}>{y}</option>
-          ))}
-        </select>
-        {loading && <span className="text-sm opacity-70">Carregando...</span>}
-        {error && <span className="text-sm text-red-600">{error}</span>}
-      </div>
-
-      {/* Cards resumo */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card title="Total de Entradas (ano)" value={formatBRL(totals.entradas)} accent="#2E86DE" />
-        <Card title="Total de Despesas (ano)" value={formatBRL(totals.despesas)} accent="#E74C3C" />
-        <Card title="Total Investido (ano)" value={formatBRL(totals.investido)} accent="#8E44AD" />
-        <Card title="Total Vale (Alimentação)" value={formatBRL(totals.vale)} accent="#FF8800" />
-        <Card title="Entradas - Vale" value={formatBRL(totals.netEntradasMinusVale)} accent="#2ECC71" />
-      </div>
-
-      {/* Gráficos */}
-      <div className="mt-8 grid lg:grid-cols-2 gap-6">
-        <div className="rounded-xl p-5 border border-black/10 bg-white">
-          <div className="text-sm opacity-70 mb-2">Saldo final por mês</div>
-          <MiniBar data={totals.saldoFinalMes} labels={mesesPt} color="#2ECC71" />
-        </div>
-
-        <div className="rounded-xl p-5 border border-black/10 bg-white">
-          <div className="text-sm opacity-70 mb-2">Total de despesas por mês</div>
-          <MiniBar data={totals.despesasPorMes} labels={mesesPt} color="#E74C3C" />
-        </div>
-
-        <div className="rounded-xl p-5 border border-black/10 bg-white">
-          <div className="text-sm opacity-70 mb-3">Total de gastos por Categoria</div>
-          <div className="space-y-2">
-            {totals.categorias.length === 0 ? (
-              <div className="text-sm opacity-70">Sem despesas</div>
-            ) : (
-              totals.categorias.map(it => (
-                <div key={it.key} className="flex items-center gap-3">
-                  <div className="flex-1 h-2 bg-black/10 rounded">
-                    <div className="h-2 rounded" style={{ width: `${Math.min(100, (it.total / (totals.despesas || 1)) * 100)}%`, background: '#FF8800' }} />
-                  </div>
-                  <div className="text-xs w-28 truncate">{it.key}</div>
-                  <div className="text-xs">{formatBRL(it.total)}</div>
+    <div className="min-h-screen px-6 py-8 bg-white text-gray-900">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <header>
+          <div className="rounded-2xl p-6 shadow-sm bg-[linear-gradient(135deg,#f5f7fa,#e4ebf3)] border border-gray-200">
+            <div className="flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <img src="/logo-kw-120-blue.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white p-1 object-contain border border-gray-200" loading="lazy" />
+                <div>
+                  <h1 className="text-2xl font-bold leading-tight text-gray-800">Dashboard Anual</h1>
+                  <p className="text-sm text-gray-600">Resumo consolidado por ano das competências</p>
                 </div>
-              ))
-            )}
+              </div>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="min-w-[140px]">
+                  <FancySelect
+                    value={year ? String(year) : ''}
+                    onChange={v => setYear(Number(v))}
+                    options={yearOptions}
+                    placeholder="Ano"
+                    size="sm"
+                  />
+                </div>
+                {loading && <span className="text-xs opacity-70">Carregando...</span>}
+                {error && <span className="text-xs text-red-600">{error}</span>}
+              </div>
+            </div>
           </div>
+        </header>
+
+        {/* Summary cards */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <StatCard icon={<Wallet size={18} color="#0038A8" />} title="Entradas" value={formatBRL(totals.entradas)} accent="#0038A81A" />
+          <StatCard icon={<CreditCard size={18} color="#E74C3C" />} title="Despesas" value={formatBRL(totals.despesas)} accent="#E74C3C1A" />
+          <StatCard icon={<TrendingUp size={18} color="#8E44AD" />} title="Investido" value={formatBRL(totals.investido)} accent="#8E44AD26" />
+          <StatCard icon={<CreditCard size={18} color="#FF8800" />} title="Vale" value={formatBRL(totals.vale)} accent="#FF880026" />
+          <StatCard icon={<BarChart3 size={18} color="#2ECC71" />} title="Entradas - Vale" value={formatBRL(totals.netEntradasMinusVale)} accent="#2ECC7126" />
         </div>
 
-        <div className="rounded-xl p-5 border border-black/10 bg-white">
-          <div className="text-sm opacity-70 mb-3">Total de gastos por Forma de Pagamento</div>
-          <div className="space-y-2">
-            {totals.pagamentos.length === 0 ? (
-              <div className="text-sm opacity-70">Sem despesas</div>
-            ) : (
-              totals.pagamentos.map(it => (
-                <div key={it.key} className="flex items-center gap-3">
-                  <div className="flex-1 h-2 bg-black/10 rounded">
-                    <div className="h-2 rounded" style={{ width: `${Math.min(100, (it.total / (totals.despesas || 1)) * 100)}%`, background: '#2E86DE' }} />
-                  </div>
-                  <div className="text-xs w-28 truncate">{it.key}</div>
-                  <div className="text-xs">{formatBRL(it.total)}</div>
-                </div>
-              ))
-            )}
+        {/* Charts */}
+        <Section title="Gráficos">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+              <div className="text-sm font-medium mb-2">Saldo final por mês</div>
+              <MiniBar data={totals.saldoFinalMes} labels={mesesPt} color="#2ECC71" showValues />
+            </div>
+            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+              <div className="text-sm font-medium mb-2">Despesas por mês</div>
+              <MiniBar data={totals.despesasPorMes} labels={mesesPt} color="#E74C3C" showValues />
+            </div>
           </div>
-        </div>
+        </Section>
+
+        {/* Analysis (Pie Charts) */}
+        <Section title="Análises">
+          <div className="grid lg:grid-cols-2 gap-6">
+            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+              <div className="flex items-center gap-2 mb-3"><PieChart size={16} className="text-[#FF8800]" /><span className="text-sm font-medium">Despesas por Categoria</span></div>
+              {totals.categorias.length === 0 ? (
+                <div className="text-xs opacity-70">Sem despesas</div>
+              ) : (
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 h-64"><Pie data={pieCategoriasData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false }}}} /></div>
+                  <ul className="flex-1 space-y-2 text-xs md:text-sm max-h-64 overflow-y-auto pr-1">
+                    {totals.categorias.sort((a,b)=> b.total - a.total).map(it => (
+                      <li key={it.key} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background:getCategoryColor(it.key) }} />
+                          <span className="truncate" title={it.key}>{it.key}</span>
+                        </span>
+                        <span className="font-medium text-gray-700">{formatBRL(it.total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+              <div className="flex items-center gap-2 mb-3"><PieChart size={16} className="text-[#0038A8]" /><span className="text-sm font-medium">Despesas por Forma de Pagamento</span></div>
+              {totals.pagamentos.length === 0 ? (
+                <div className="text-xs opacity-70">Sem despesas</div>
+              ) : (
+                <div className="flex flex-col md:flex-row gap-4">
+                  <div className="flex-1 h-64"><Pie data={piePagamentosData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false }}}} /></div>
+                  <ul className="flex-1 space-y-2 text-xs md:text-sm max-h-64 overflow-y-auto pr-1">
+                    {totals.pagamentos.sort((a,b)=> b.total - a.total).map(it => (
+                      <li key={it.key} className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 min-w-0">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background:getColorForId(it.key) }} />
+                          <span className="truncate" title={it.key}>{it.key}</span>
+                        </span>
+                        <span className="font-medium text-gray-700">{formatBRL(it.total)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </Section>
       </div>
     </div>
   )
