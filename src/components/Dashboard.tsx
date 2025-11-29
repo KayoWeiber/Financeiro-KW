@@ -294,6 +294,31 @@ const Dashboard: React.FC = () => {
     }
   }, [totals.pagamentos])
 
+  // Totais por ano para comparação (entradas, despesas, investido)
+  const yearsTotals = useMemo(() => {
+    const acc: Record<number, { entradas: number; despesas: number; investido: number }> = {}
+    for (const c of competencias) {
+      const resumo = resumoByComp[String(c.id)]
+      if (!resumo) continue
+      const y = Number(c.ano)
+      if (!acc[y]) acc[y] = { entradas: 0, despesas: 0, investido: 0 }
+      const entradasTotal = Number(resumo.entradas.total || 0)
+      const despesasVar = Number(resumo.despesas.variaveis.total || 0)
+      const despesasFix = Number(resumo.despesas.fixas.total || 0)
+      const investimentosTotal = Number(resumo.investimentos.total || 0)
+      acc[y].entradas += entradasTotal
+      acc[y].despesas += despesasVar + despesasFix
+      acc[y].investido += investimentosTotal
+    }
+    const sortedYears = Object.keys(acc).map(Number).sort((a,b) => a - b)
+    return {
+      years: sortedYears.map(String),
+      entradas: sortedYears.map(y => acc[y].entradas),
+      despesas: sortedYears.map(y => acc[y].despesas),
+      investido: sortedYears.map(y => acc[y].investido)
+    }
+  }, [competencias, resumoByComp])
+
   return (
     <div className="min-h-screen px-6 py-8 bg-white text-gray-900">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -407,6 +432,25 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </Section>
+        {/* Comparação anual */}
+        {yearsTotals.years.length > 1 && (
+          <Section title="Comparação Anual">
+            <div className="grid lg:grid-cols-3 gap-6">
+              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+                <div className="text-sm font-medium mb-2">Entradas por ano</div>
+                <MiniBar data={yearsTotals.entradas} labels={yearsTotals.years} color="#0038A8" showValues />
+              </div>
+              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+                <div className="text-sm font-medium mb-2">Despesas por ano</div>
+                <MiniBar data={yearsTotals.despesas} labels={yearsTotals.years} color="#E74C3C" showValues />
+              </div>
+              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
+                <div className="text-sm font-medium mb-2">Investido por ano</div>
+                <MiniBar data={yearsTotals.investido} labels={yearsTotals.years} color="#8E44AD" showValues />
+              </div>
+            </div>
+          </Section>
+        )}
       </div>
     </div>
   )
