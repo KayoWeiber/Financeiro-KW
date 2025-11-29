@@ -172,6 +172,26 @@ const CompetenciaView: React.FC = () => {
     ]
   }
 
+  // Date helpers
+  const formatDateDisplay = (raw: string) => {
+    if (!raw) return '—'
+    try {
+      const d = new Date(raw)
+      if (isNaN(d.getTime())) return raw.slice(0,10)
+      return d.toLocaleDateString('pt-BR') // dd/MM/aaaa
+    } catch { return raw.slice(0,10) }
+  }
+  const isoInput = (raw: string) => {
+    if (!raw) return ''
+    // If already yyyy-MM-dd
+    if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+    try {
+      const d = new Date(raw)
+      if (isNaN(d.getTime())) return raw.slice(0,10)
+      return d.toISOString().slice(0,10)
+    } catch { return raw.slice(0,10) }
+  }
+
   const handleSubmitEntrada = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!competenciaAtual) return
@@ -214,10 +234,10 @@ const CompetenciaView: React.FC = () => {
     } finally { setSubmitting(null) }
   }
   // Generic helpers
-  const startEditEntrada = (e: Entrada) => { setEditingEntrada(e.id); setEditEntradaValues({ data:e.data, tipo_renda:e.tipo_renda, descricao:e.descricao, valor:String(e.valor) }) }
-  const startEditInvest = (i: Investimento) => { setEditingInvest(i.id); setEditInvestValues({ data:i.data, descricao:i.descricao, valor:String(i.valor) }) }
-  const startEditFixo = (g: GastoFixo) => { setEditingFixo(g.id); setEditFixoValues({ categoria_id:g.categoria_id, data:g.data, descricao:g.descricao, forma_pagamento_id:g.forma_pagamento_id, pago:g.pago, valor:String(g.valor) }) }
-  const startEditVar = (g: GastoVariavel) => { setEditingVar(g.id); setEditVarValues({ categoria_id:g.categoria_id, data:g.data, descricao:g.descricao, forma_pagamento_id:g.forma_pagamento_id, valor:String(g.valor) }) }
+  const startEditEntrada = (e: Entrada) => { setEditingEntrada(e.id); setEditEntradaValues({ data: isoInput(e.data), tipo_renda:e.tipo_renda, descricao:e.descricao, valor:String(e.valor) }) }
+  const startEditInvest = (i: Investimento) => { setEditingInvest(i.id); setEditInvestValues({ data: isoInput(i.data), descricao:i.descricao, valor:String(i.valor) }) }
+  const startEditFixo = (g: GastoFixo) => { setEditingFixo(g.id); setEditFixoValues({ categoria_id:g.categoria_id, data: isoInput(g.data), descricao:g.descricao, forma_pagamento_id:g.forma_pagamento_id, pago:g.pago, valor:String(g.valor) }) }
+  const startEditVar = (g: GastoVariavel) => { setEditingVar(g.id); setEditVarValues({ categoria_id:g.categoria_id, data: isoInput(g.data), descricao:g.descricao, forma_pagamento_id:g.forma_pagamento_id, valor:String(g.valor) }) }
 
   const cancelAll = () => { setEditingEntrada(null); setEditingInvest(null); setEditingFixo(null); setEditingVar(null) }
 
@@ -452,7 +472,7 @@ const CompetenciaView: React.FC = () => {
                     </tr>
                   ) : (
                     <tr key={e.id} className="border-t">
-                      <td className="p-2">{e.data}</td>
+                      <td className="p-2">{formatDateDisplay(e.data)}</td>
                       <td className="p-2">{e.tipo_renda}</td>
                       <td className="p-2">{e.descricao}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(e.valor)}
@@ -501,7 +521,7 @@ const CompetenciaView: React.FC = () => {
                     </tr>
                   ) : (
                     <tr key={i.id} className="border-t">
-                      <td className="p-2">{i.data}</td>
+                      <td className="p-2">{formatDateDisplay(i.data)}</td>
                       <td className="p-2">{i.descricao}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(i.valor)}
                         <button type="button" onClick={()=> startEditInvest(i)} className="text-blue-600" title="Editar"><Pencil size={14} /></button>
@@ -567,7 +587,7 @@ const CompetenciaView: React.FC = () => {
                   ) : (
                     <tr key={g.id} className="border-t">
                       <td className="p-2">{categorias.find(c=>c.id===g.categoria_id)?.nome || '—'}</td>
-                      <td className="p-2">{g.data}</td>
+                      <td className="p-2">{formatDateDisplay(g.data)}</td>
                       <td className="p-2">{g.descricao}</td>
                       <td className="p-2">{formasPagamento.find(f=>f.id===g.forma_pagamento_id)?.tipo || '—'}</td>
                       <td className="p-2">{g.pago ? 'Sim' : 'Não'}</td>
@@ -631,7 +651,7 @@ const CompetenciaView: React.FC = () => {
                   ) : (
                     <tr key={g.id} className="border-t">
                       <td className="p-2">{categorias.find(c=>c.id===g.categoria_id)?.nome || '—'}</td>
-                      <td className="p-2">{g.data}</td>
+                      <td className="p-2">{formatDateDisplay(g.data)}</td>
                       <td className="p-2">{g.descricao}</td>
                       <td className="p-2">{formasPagamento.find(f=>f.id===g.forma_pagamento_id)?.tipo || '—'}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(g.valor)}
