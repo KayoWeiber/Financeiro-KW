@@ -63,8 +63,9 @@ export const api = {
     valor: number
   }) => request('/entradas', { method: 'POST', body: payload }),
   getEntradas: (competenciaId: number | string) => request(`/entradas/${competenciaId}`),
-  updateEntrada: (id: number | string, payload: { data?: string; tipo_renda?: string; descricao?: string; valor?: number }) =>
-    request(`/entradas/${id}`, { method: 'PATCH', body: payload }),
+  // PATCH dinâmico: envia { campo, valor }
+  updateEntrada: (id: number | string, campo: 'data' | 'tipo_renda' | 'descricao' | 'valor', valor: unknown) =>
+    request(`/entradas/${id}`, { method: 'PATCH', body: { campo, valor } }),
   deleteEntrada: (id: number | string) => request(`/entradas/${id}`, { method: 'DELETE' }),
 
   // Formas de pagamento
@@ -104,10 +105,12 @@ export const api = {
     pago: boolean
   }) => request('/gastos-fixos', { method: 'POST', body: payload }),
   getGastosFixos: (competenciaId: number | string) => request(`/gastos-fixos/${competenciaId}`),
+  // PATCH dinâmico: envia { campo, valor }
   updateGastoFixo: (
     id: number | string,
-    payload: { data?: string; descricao?: string; valor?: number; pago?: boolean; categoria_id?: number | string; forma_pagamento_id?: number | string }
-  ) => request(`/gastos-fixos/${id}`, { method: 'PATCH', body: payload }),
+    campo: 'data' | 'descricao' | 'valor' | 'pago' | 'categoria_id' | 'forma_pagamento_id',
+    valor: unknown
+  ) => request(`/gastos-fixos/${id}`, { method: 'PATCH', body: { campo, valor } }),
   deleteGastoFixo: (id: number | string) => request(`/gastos-fixos/${id}`, { method: 'DELETE' }),
 
   // Investimentos

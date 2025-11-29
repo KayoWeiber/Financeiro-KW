@@ -241,12 +241,25 @@ const CompetenciaView: React.FC = () => {
 
   const cancelAll = () => { setEditingEntrada(null); setEditingInvest(null); setEditingFixo(null); setEditingVar(null) }
 
-  const saveEntrada = async (id:string) => {
+  const saveEntrada = async (entry: Entrada) => {
     try {
       setSubmitting('edit-entrada')
-      const payload = { data: editEntradaValues.data, tipo_renda: editEntradaValues.tipo_renda, descricao: editEntradaValues.descricao, valor: Number(editEntradaValues.valor)||0 }
-      await api.updateEntrada(id, payload)
-      setEntradas(prev => prev.map(e=> e.id===id ? { ...e, ...payload } : e))
+      const diffs: Array<Promise<unknown>> = []
+      if (editEntradaValues.data && editEntradaValues.data !== entry.data) {
+        diffs.push(api.updateEntrada(entry.id, 'data', editEntradaValues.data))
+      }
+      if (editEntradaValues.tipo_renda && editEntradaValues.tipo_renda !== entry.tipo_renda) {
+        diffs.push(api.updateEntrada(entry.id, 'tipo_renda', editEntradaValues.tipo_renda))
+      }
+      if (editEntradaValues.descricao !== entry.descricao) {
+        diffs.push(api.updateEntrada(entry.id, 'descricao', editEntradaValues.descricao))
+      }
+      const valorNum = Number(editEntradaValues.valor)||0
+      if (valorNum !== entry.valor) {
+        diffs.push(api.updateEntrada(entry.id, 'valor', valorNum))
+      }
+      if (diffs.length) await Promise.all(diffs)
+      setEntradas(prev => prev.map(e=> e.id===entry.id ? { ...e, data: editEntradaValues.data, tipo_renda: editEntradaValues.tipo_renda, descricao: editEntradaValues.descricao, valor: valorNum } : e))
       setEditingEntrada(null)
     } finally { setSubmitting(null) }
   }
@@ -272,12 +285,19 @@ const CompetenciaView: React.FC = () => {
     setInvestimentos(prev => prev.filter(i=> i.id!==id))
   }
 
-  const saveFixo = async (id:string) => {
+  const saveFixo = async (gasto: GastoFixo) => {
     try {
       setSubmitting('edit-fixo')
-      const payload = { data: editFixoValues.data, descricao: editFixoValues.descricao, valor: Number(editFixoValues.valor)||0, pago: editFixoValues.pago, categoria_id: editFixoValues.categoria_id, forma_pagamento_id: editFixoValues.forma_pagamento_id }
-      await api.updateGastoFixo(id, payload)
-      setGastosFixos(prev => prev.map(g=> g.id===id ? { ...g, ...payload } : g))
+      const diffs: Array<Promise<unknown>> = []
+      if (editFixoValues.data && editFixoValues.data !== gasto.data) diffs.push(api.updateGastoFixo(gasto.id, 'data', editFixoValues.data))
+      if (editFixoValues.descricao !== gasto.descricao) diffs.push(api.updateGastoFixo(gasto.id, 'descricao', editFixoValues.descricao))
+      const valorNum = Number(editFixoValues.valor)||0
+      if (valorNum !== gasto.valor) diffs.push(api.updateGastoFixo(gasto.id, 'valor', valorNum))
+      if (editFixoValues.pago !== gasto.pago) diffs.push(api.updateGastoFixo(gasto.id, 'pago', editFixoValues.pago))
+      if (editFixoValues.categoria_id !== gasto.categoria_id) diffs.push(api.updateGastoFixo(gasto.id, 'categoria_id', editFixoValues.categoria_id))
+      if (editFixoValues.forma_pagamento_id !== gasto.forma_pagamento_id) diffs.push(api.updateGastoFixo(gasto.id, 'forma_pagamento_id', editFixoValues.forma_pagamento_id))
+      if (diffs.length) await Promise.all(diffs)
+      setGastosFixos(prev => prev.map(g=> g.id===gasto.id ? { ...g, data: editFixoValues.data, descricao: editFixoValues.descricao, valor: valorNum, pago: editFixoValues.pago, categoria_id: editFixoValues.categoria_id, forma_pagamento_id: editFixoValues.forma_pagamento_id } : g))
       setEditingFixo(null)
     } finally { setSubmitting(null) }
   }
@@ -409,7 +429,7 @@ const CompetenciaView: React.FC = () => {
         {/* Charts */}
         <Section title="Gráficos">
           <div className="grid lg:grid-cols-2 gap-4">
-            <div className="rounded-xl border border-black/10 p-4">
+            <div className="rounded-xl border border-black/10 p-4 h-72 flex flex-col">
               <div className="flex items-center gap-2 mb-2">
                 <PieChart size={18} color={palette.secondary} />
                 <span className="font-semibold">Gastos por Categoria</span>
@@ -417,10 +437,12 @@ const CompetenciaView: React.FC = () => {
               {Object.keys(gastosPorCategoria).length === 0 ? (
                 <div className="text-xs opacity-70">Sem dados</div>
               ) : (
-                <Pie data={pieData} />
+                <div className="flex-1">
+                  <Pie data={pieData} options={{ maintainAspectRatio:false }} />
+                </div>
               )}
             </div>
-            <div className="rounded-xl border border-black/10 p-4">
+            <div className="rounded-xl border border-black/10 p-4 h-72 flex flex-col">
               <div className="flex items-center gap-2 mb-2">
                 <BarChart3 size={18} color={palette.primary} />
                 <span className="font-semibold">Gastos por Forma de Pagamento</span>
@@ -428,7 +450,33 @@ const CompetenciaView: React.FC = () => {
               {Object.keys(gastosPorPagamento).length === 0 ? (
                 <div className="text-xs opacity-70">Sem dados</div>
               ) : (
-                <Bar data={barData} options={{ plugins:{ legend:{ display:false }}, responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }} height={220} />
+                <Bar 
+                  data={barData} 
+                  options={{
+                    responsive:true,
+                    maintainAspectRatio:false,
+                    plugins:{ legend:{ display:false }},
+                    layout:{ padding:{ top:4, right:8, left:8, bottom:4 } },
+                    scales:{
+                      x:{
+                        ticks:{
+                          maxRotation:45,
+                          minRotation:0,
+                          autoSkip:true,
+                          // val (tick value) não utilizado; idx para acessar label
+                          callback: (_val, idx) => {
+                            const label = (barData.labels as string[])[idx] || ''
+                            return label.length > 12 ? label.slice(0,10)+'…' : label
+                          }
+                        }
+                      },
+                      y:{ beginAtZero:true }
+                    },
+                    elements:{
+                      bar:{ borderRadius:4, borderSkipped:false }
+                    }
+                  }}
+                />
               )}
             </div>
           </div>
@@ -466,7 +514,7 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><input className="border rounded px-1 py-0.5 text-xs" value={editEntradaValues.descricao} onChange={ev=>setEditEntradaValues(v=>({...v,descricao:ev.target.value}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editEntradaValues.valor} onChange={ev=>setEditEntradaValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveEntrada(e.id)} className="text-green-600" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={()=>saveEntrada(e)} className="text-green-600" title="Salvar"><Check size={16} /></button>
                         <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
@@ -476,8 +524,8 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2">{e.tipo_renda}</td>
                       <td className="p-2">{e.descricao}</td>
                       <td className="p-2 flex items-center gap-2">{formatCurrency(e.valor)}
-                        <button type="button" onClick={()=> startEditEntrada(e)} className="text-blue-600" title="Editar"><Pencil size={14} /></button>
-                        <button type="button" onClick={()=> deleteEntrada(e.id)} className="text-red-600" title="Remover"><Trash2 size={14} /></button>
+                        <button type="button" onClick={()=> startEditEntrada(e)} className="text-blue-600 cursor-pointer" title="Editar"><Pencil size={14} /></button>
+                        <button type="button" onClick={()=> deleteEntrada(e.id)} className="text-red-600 cursor-pointer" title="Remover"><Trash2 size={14} /></button>
                       </td>
                     </tr>
                   )
@@ -580,7 +628,7 @@ const CompetenciaView: React.FC = () => {
                       <td className="p-2"><input type="checkbox" checked={editFixoValues.pago} onChange={ev=>setEditFixoValues(v=>({...v,pago:ev.target.checked}))} /></td>
                       <td className="p-2 flex items-center gap-2">
                         <input type="number" step="0.01" className="border rounded px-1 py-0.5 text-xs w-24" value={editFixoValues.valor} onChange={ev=>setEditFixoValues(v=>({...v,valor:ev.target.value}))} />
-                        <button type="button" onClick={()=>saveFixo(g.id)} className="text-green-600" title="Salvar"><Check size={16} /></button>
+                        <button type="button" onClick={()=>saveFixo(g)} className="text-green-600" title="Salvar"><Check size={16} /></button>
                         <button type="button" onClick={cancelAll} className="text-red-600" title="Cancelar"><X size={16} /></button>
                       </td>
                     </tr>
