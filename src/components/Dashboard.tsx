@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { Wallet, CreditCard, TrendingUp, BarChart3, PieChart } from 'lucide-react'
+import { Wallet, CreditCard, TrendingUp, BarChart3, PieChart, ArrowUpRight, ArrowDownRight, Menu, } from 'lucide-react'
 import { Pie } from 'react-chartjs-2'
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js'
 import FancySelect, { type FancyOption } from './ui/FancySelect'
-import { gradientFor, getCategoryColor, getColorForId } from '../lib/colors'
+import { getCategoryColor, getColorForId } from '../lib/colors'
 
 ChartJS.register(ArcElement, Tooltip, Legend)
 
@@ -37,58 +37,76 @@ interface ResumoCompetencia {
 
 const mesesPt = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
 
-// Reuso de padrões de design do CompetenciaView
-const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; accent?: string }> = ({ icon, title, value, accent }) => (
-  <div className="rounded-2xl p-4 shadow-sm border border-black/10 bg-white flex items-center gap-3">
-    <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: accent || '#F0F4FF' }}>
-      {icon}
+interface StatCardProps {
+  icon: React.ReactNode
+  title: string
+  value: string
+  trend?: 'up' | 'down' | 'neutral'
+  colorClass?: string
+}
+
+const StatCard: React.FC<StatCardProps> = ({ icon, title, value, trend, colorClass = "bg-primary" }) => (
+  <div className="glass-card rounded-2xl p-5 hover:shadow-md transition-all duration-300 group">
+    <div className="flex items-start justify-between mb-4">
+      <div className={`p-3 rounded-xl ${colorClass} bg-opacity-10 text-opacity-100`}>
+        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+        {React.cloneElement(icon as React.ReactElement<any>, { size: 20, className: colorClass.replace('bg-', 'text-') })}
+      </div>
+      {trend && (
+        <span className={`text-xs px-2 py-1 rounded-full flex items-center gap-1 ${trend === 'up' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+          {trend === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+          {trend === 'up' ? '+12%' : '-5%'}
+        </span>
+      )}
     </div>
     <div>
-      <div className="text-xs opacity-70">{title}</div>
-      <div className="text-lg font-semibold">{value}</div>
+      <div className="text-sm text-gray-500 font-medium mb-1">{title}</div>
+      <div className="text-2xl font-bold text-gray-800 tracking-tight group-hover:scale-[1.02] origin-left transition-transform">
+        {value}
+      </div>
     </div>
   </div>
 )
 
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <section className="rounded-2xl p-6 shadow-sm" style={{ background: gradientFor(title) }}>
-    <h2 className="text-lg font-semibold mb-4 text-gray-800">{title}</h2>
+const Section: React.FC<{ title: string; children: React.ReactNode; className?: string }> = ({ title, children, className }) => (
+  <section className={`rounded-3xl p-6 glass-card ${className}`}>
+    <h2 className="text-lg font-bold mb-6 text-gray-800 flex items-center gap-2">
+      <span className="w-1.5 h-6 rounded-full bg-primary/80 block"></span>
+      {title}
+    </h2>
     {children}
   </section>
 )
 
-// (Card removido - não utilizado após refatoração)
-
-const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string; showValues?: boolean }> = ({ data, labels = [], color = '#0038A8', showValues = false }) => {
+const MiniBar: React.FC<{ data: number[]; labels?: string[]; color?: string; showValues?: boolean }> = ({ data, labels = [], color = '#3B82F6', showValues = false }) => {
   const max = Math.max(1, ...data.map(n => Math.abs(n)))
   return (
-    <div className="relative flex gap-1 items-end h-40 pt-4">
+    <div className="relative flex gap-1.5 items-end h-48 pt-6 w-full">
       {data.map((v, i) => {
         const label = labels[i] || String(i + 1)
         const heightPct = (Math.abs(v) / max) * 100
-        const valueStr = v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-        const charLen = valueStr.length
-        // Offset baseado no tamanho do texto (mais caracteres => mais afastado para não sobrepor topo da barra)
-        const offsetPx = 4 + Math.min(28, charLen * 1.2)
+        const valueStr = v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+
         return (
-          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end min-w-0 relative">
+          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end min-w-0 group relative">
             {showValues && (
               <div
-                className="absolute left-1/2 -translate-x-1/2 text-[10px] font-medium text-gray-800 whitespace-nowrap pointer-events-none select-none"
-                style={{ bottom: `calc(${heightPct}% + ${offsetPx}px)` }}
-                title={valueStr}
+                className="absolute left-1/2 -translate-x-1/2 -top-6 bg-gray-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none"
               >
                 {valueStr}
               </div>
             )}
-            <div className="w-full flex items-end h-full">
+            <div className="w-full flex items-end h-full px-[1px]">
               <div
-                title={`${label}: ${valueStr}`}
-                className="w-full rounded-md transition-all duration-500 ease-out shadow-sm"
-                style={{ height: `${heightPct}%`, background: v < 0 ? '#E74C3C' : color, opacity: 0.95 }}
+                className="w-full rounded-t-sm transition-all duration-500 ease-out hover:opacity-100 opacity-80"
+                style={{
+                  height: `${heightPct}%`,
+                  background: v < 0 ? 'var(--color-destructive)' : color,
+                  borderRadius: '4px 4px 0 0'
+                }}
               />
             </div>
-            <div className="mt-2 text-[11px] leading-tight text-center truncate w-full opacity-70" title={label}>{label}</div>
+            <div className="mt-2 text-[10px] font-medium text-gray-400 text-center truncate w-full group-hover:text-primary transition-colors">{label}</div>
           </div>
         )
       })}
@@ -271,7 +289,8 @@ const Dashboard: React.FC = () => {
         {
           data: dataVals,
           backgroundColor: labels.map(l => getCategoryColor(l)),
-          borderWidth: 0,
+          borderWidth: 2,
+          borderColor: '#ffffff',
           hoverOffset: 6
         }
       ]
@@ -287,7 +306,8 @@ const Dashboard: React.FC = () => {
         {
           data: dataVals,
           backgroundColor: labels.map(l => getColorForId(l)),
-          borderWidth: 0,
+          borderWidth: 2,
+          borderColor: '#ffffff',
           hoverOffset: 6
         }
       ]
@@ -310,7 +330,7 @@ const Dashboard: React.FC = () => {
       acc[y].despesas += despesasVar + despesasFix
       acc[y].investido += investimentosTotal
     }
-    const sortedYears = Object.keys(acc).map(Number).sort((a,b) => a - b)
+    const sortedYears = Object.keys(acc).map(Number).sort((a, b) => a - b)
     return {
       years: sortedYears.map(String),
       entradas: sortedYears.map(y => acc[y].entradas),
@@ -320,137 +340,184 @@ const Dashboard: React.FC = () => {
   }, [competencias, resumoByComp])
 
   return (
-    <div className="min-h-screen px-6 py-8 bg-white text-gray-900">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen pb-20 font-sans text-slate-800">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Header */}
-        <header>
-          <div className="rounded-2xl p-6 shadow-sm bg-[linear-gradient(135deg,#f5f7fa,#e4ebf3)] border border-gray-200">
-            <div className="flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-3">
-                <img src="/logo-kw-120-blue.png" alt="Financeiro KW" className="h-10 w-10 rounded-xl bg-white p-1 object-contain border border-gray-200" loading="lazy" />
+        <header className="pt-8">
+          <div className="glass-card rounded-3xl p-6 sm:p-8 relative overflow-hidden">
+            {/* Abstract Background Shapes */}
+            <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+              <div className="flex items-center gap-5">
+                <div className="h-16 w-16 rounded-2xl bg-white shadow-sm border border-gray-100 p-2 flex items-center justify-center">
+                  <img src="/logo-kw-120-blue.png" alt="Logo" className="w-full h-full object-contain" />
+                </div>
                 <div>
-                  <h1 className="text-2xl font-bold leading-tight text-gray-800">Dashboard Anual</h1>
-                  <p className="text-sm text-gray-600">Resumo consolidado por ano das competências</p>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                    Visão Geral
+                  </h1>
+                  <p className="text-slate-500 font-medium mt-1">
+                    Análise financeira completa de {year}
+                  </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 w-full sm:w-auto">
-                <div className="min-w-[140px]">
+
+              <div className="flex items-center gap-3">
+                <div className="min-w-[160px]">
                   <FancySelect
                     value={year ? String(year) : ''}
                     onChange={v => setYear(Number(v))}
                     options={yearOptions}
-                    placeholder="Ano"
-                    size="sm"
+                    placeholder="Selecione o ano"
+                    size="md"
+                    className="glass-card"
                   />
                 </div>
                 <button
-                  type="button"
                   onClick={() => navigate('/')}
-                  className="rounded-md bg-gray-800 hover:bg-gray-900 text-white text-xs px-3 py-2 shadow-sm transition-colors cursor-pointer"
-                  title="Voltar ao menu"
+                  className="rounded-xl px-5 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold border border-gray-200 shadow-sm transition-all flex items-center gap-2"
                 >
-                  Menu
+                  <Menu size={18} />
+                  <span>Menu</span>
                 </button>
-                {loading && <span className="text-xs opacity-70">Carregando...</span>}
-                {error && <span className="text-xs text-red-600">{error}</span>}
               </div>
             </div>
+            {loading && <div className="absolute top-0 left-0 w-full h-[3px] bg-primary/20 overflow-hidden"><div className="w-full h-full bg-primary animate-progress-indeterminate origin-left" /></div>}
+            {error && <div className="mt-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100">{error}</div>}
           </div>
         </header>
 
-        {/* Summary cards */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <StatCard icon={<Wallet size={18} color="#0038A8" />} title="Entradas" value={formatBRL(totals.entradas)} accent="#0038A81A" />
-          <StatCard icon={<CreditCard size={18} color="#E74C3C" />} title="Despesas" value={formatBRL(totals.despesas)} accent="#E74C3C1A" />
-          <StatCard icon={<TrendingUp size={18} color="#8E44AD" />} title="Investido" value={formatBRL(totals.investido)} accent="#8E44AD26" />
-          <StatCard icon={<CreditCard size={18} color="#FF8800" />} title="Vale" value={formatBRL(totals.vale)} accent="#FF880026" />
-          <StatCard icon={<BarChart3 size={18} color="#2ECC71" />} title="Entradas - Vale" value={formatBRL(totals.netEntradasMinusVale)} accent="#2ECC7126" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          <StatCard
+            icon={<Wallet />}
+            title="Entradas"
+            value={formatBRL(totals.entradas)}
+            colorClass="bg-[#0038A8] text-[#0038A8]"
+            trend="up"
+          />
+          <StatCard
+            icon={<CreditCard />}
+            title="Despesas"
+            value={formatBRL(totals.despesas)}
+            colorClass="bg-[#E74C3C] text-[#E74C3C]"
+            trend="neutral"
+          />
+          <StatCard
+            icon={<TrendingUp />}
+            title="Investimentos"
+            value={formatBRL(totals.investido)}
+            colorClass="bg-[#8E44AD] text-[#8E44AD]"
+            trend="up"
+          />
+          <StatCard
+            icon={<CreditCard />}
+            title="Vales"
+            value={formatBRL(totals.vale)}
+            colorClass="bg-[#FF8800] text-[#FF8800]"
+          />
+          <StatCard
+            icon={<BarChart3 />}
+            title="Saldo Líquido"
+            value={formatBRL(totals.netEntradasMinusVale - totals.despesas)}
+            colorClass="bg-[#2ECC71] text-[#2ECC71]"
+          />
         </div>
 
-        {/* Charts */}
-        <Section title="Gráficos">
-          <div className="grid lg:grid-cols-1 gap-6">
-            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-              <div className="text-sm font-medium mb-2">Saldo final por mês</div>
-              <MiniBar data={totals.saldoFinalMes} labels={mesesPt} color="#2ECC71" showValues />
-            </div>
-            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-              <div className="text-sm font-medium mb-2">Entradas por mês</div>
-              <MiniBar data={totals.entradasPorMes} labels={mesesPt} color="#0038A8" showValues />
-            </div>
-            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-              <div className="text-sm font-medium mb-2">Despesas por mês</div>
-              <MiniBar data={totals.despesasPorMes} labels={mesesPt} color="#E74C3C" showValues />
-            </div>
-          </div>
-        </Section>
+        {/* Main Charts Area */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Section title="Evolução Mensal" className="h-[420px] flex flex-col justify-between">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 h-full">
+                <div className="flex flex-col h-full justify-end">
+                  <div className="text-xs font-semibold uppercase text-gray-400 mb-4 ml-1">Entradas vs tempo</div>
+                  <MiniBar data={totals.entradasPorMes} labels={mesesPt} color="var(--primary)" showValues />
+                </div>
+                <div className="flex flex-col h-full justify-end">
+                  <div className="text-xs font-semibold uppercase text-gray-400 mb-4 ml-1">Despesas vs tempo</div>
+                  <MiniBar data={totals.despesasPorMes} labels={mesesPt} color="var(--color-destructive)" showValues />
+                </div>
+                <div className="flex flex-col h-full justify-end">
+                  <div className="text-xs font-semibold uppercase text-gray-400 mb-4 ml-1">Saldo Líquido</div>
+                  <MiniBar data={totals.saldoFinalMes} labels={mesesPt} color="var(--color-success)" showValues />
+                </div>
+              </div>
+            </Section>
 
-        {/* Analysis (Pie Charts) */}
-        <Section title="Análises">
-          <div className="grid lg:grid-cols-2 gap-6">
-            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-              <div className="flex items-center gap-2 mb-3"><PieChart size={16} className="text-[#FF8800]" /><span className="text-sm font-medium">Despesas por Categoria</span></div>
-              {totals.categorias.length === 0 ? (
-                <div className="text-xs opacity-70">Sem despesas</div>
-              ) : (
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 h-64"><Pie data={pieCategoriasData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false }}}} /></div>
-                  <ul className="flex-1 space-y-2 text-xs md:text-sm max-h-64 overflow-y-auto pr-1">
-                    {totals.categorias.sort((a,b)=> b.total - a.total).map(it => (
-                      <li key={it.key} className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background:getCategoryColor(it.key) }} />
-                          <span className="truncate" title={it.key}>{it.key}</span>
-                        </span>
-                        <span className="font-medium text-gray-700">{formatBRL(it.total)}</span>
-                      </li>
-                    ))}
-                  </ul>
+            {yearsTotals.years.length > 1 && (
+              <Section title="Histórico Anual">
+                <div className="grid grid-cols-3 gap-8 h-40">
+                  <MiniBar data={yearsTotals.entradas} labels={yearsTotals.years} color="#0038A8" />
+                  <MiniBar data={yearsTotals.despesas} labels={yearsTotals.years} color="#E74C3C" />
+                  <MiniBar data={yearsTotals.investido} labels={yearsTotals.years} color="#8E44AD" />
                 </div>
-              )}
-            </div>
-            <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-              <div className="flex items-center gap-2 mb-3"><PieChart size={16} className="text-[#0038A8]" /><span className="text-sm font-medium">Despesas por Forma de Pagamento</span></div>
-              {totals.pagamentos.length === 0 ? (
-                <div className="text-xs opacity-70">Sem despesas</div>
-              ) : (
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="flex-1 h-64"><Pie data={piePagamentosData} options={{ maintainAspectRatio:false, plugins:{ legend:{ display:false }}}} /></div>
-                  <ul className="flex-1 space-y-2 text-xs md:text-sm max-h-64 overflow-y-auto pr-1">
-                    {totals.pagamentos.sort((a,b)=> b.total - a.total).map(it => (
-                      <li key={it.key} className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ background:getColorForId(it.key) }} />
-                          <span className="truncate" title={it.key}>{it.key}</span>
-                        </span>
-                        <span className="font-medium text-gray-700">{formatBRL(it.total)}</span>
-                      </li>
-                    ))}
-                  </ul>
+              </Section>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            {/* Pie Charts Cards */}
+            <div className="glass-card rounded-3xl p-6">
+              <h3 className="text-base font-bold text-gray-800 mb-6 flex items-center gap-2">
+                <PieChart size={18} className="text-gray-400" /> Distribuição de Despesas
+              </h3>
+
+              <div className="space-y-8">
+                <div>
+                  <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">Por Categoria</div>
+                  {totals.categorias.length === 0 ? (
+                    <div className="h-32 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl">Sem dados</div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="w-24 h-24 shrink-0 relative">
+                        <Pie data={pieCategoriasData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }} />
+                      </div>
+                      <div className="flex-1 space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                        {totals.categorias.sort((a, b) => b.total - a.total).slice(0, 5).map(it => (
+                          <div key={it.key} className="flex justify-between items-center text-xs group cursor-default">
+                            <span className="flex items-center gap-2 truncate text-gray-600">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getCategoryColor(it.key) }} />
+                              {it.key}
+                            </span>
+                            <span className="font-semibold text-gray-800">{formatBRL(it.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                <div className="w-full h-px bg-gray-100" />
+
+                <div>
+                  <div className="text-xs font-medium text-gray-500 mb-3 uppercase tracking-wider">Por Pagamento</div>
+                  {totals.pagamentos.length === 0 ? (
+                    <div className="h-32 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl">Sem dados</div>
+                  ) : (
+                    <div className="flex items-center gap-4">
+                      <div className="w-24 h-24 shrink-0 relative">
+                        <Pie data={piePagamentosData} options={{ maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } } }} />
+                      </div>
+                      <div className="flex-1 space-y-1.5 max-h-32 overflow-y-auto pr-1">
+                        {totals.pagamentos.sort((a, b) => b.total - a.total).slice(0, 5).map(it => (
+                          <div key={it.key} className="flex justify-between items-center text-xs group cursor-default">
+                            <span className="flex items-center gap-2 truncate text-gray-600">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: getColorForId(it.key) }} />
+                              {it.key}
+                            </span>
+                            <span className="font-semibold text-gray-800">{formatBRL(it.total)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
-        </Section>
-        {/* Comparação anual */}
-        {yearsTotals.years.length > 1 && (
-          <Section title="Comparação Anual">
-            <div className="grid lg:grid-cols-3 gap-6">
-              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-                <div className="text-sm font-medium mb-2">Entradas por ano</div>
-                <MiniBar data={yearsTotals.entradas} labels={yearsTotals.years} color="#0038A8" showValues />
-              </div>
-              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-                <div className="text-sm font-medium mb-2">Despesas por ano</div>
-                <MiniBar data={yearsTotals.despesas} labels={yearsTotals.years} color="#E74C3C" showValues />
-              </div>
-              <div className="rounded-xl border border-black/10 p-5 bg-white flex flex-col">
-                <div className="text-sm font-medium mb-2">Investido por ano</div>
-                <MiniBar data={yearsTotals.investido} labels={yearsTotals.years} color="#8E44AD" showValues />
-              </div>
-            </div>
-          </Section>
-        )}
+        </div>
+
       </div>
     </div>
   )
