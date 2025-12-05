@@ -134,6 +134,18 @@ export const api = {
   // Resumo agregado por competencia (entradas, despesas variáveis/fixas, investimentos)
   getResumo: (userId: number | string, competenciaId: number | string) =>
     request(`/resumo/${userId}/${competenciaId}`)
+  ,
+
+  // Metas de Investimentos
+  createMetaInvestimento: (payload: {
+    user_id: number | string
+    competencia_id: number | string
+    valor_meta: number
+  }) => request('/metas-investimentos', { method: 'POST', body: payload }),
+  getMetasInvestimentos: (competenciaId: number | string) => request(`/metas-investimentos/${competenciaId}`),
+  updateMetaInvestimento: (id: number | string, valor_meta: number) =>
+    request(`/metas-investimentos/${id}`, { method: 'PATCH', body: { campo: 'valor_meta', valor: valor_meta } }),
+  deleteMetaInvestimento: (id: number | string) => request(`/metas-investimentos/${id}`, { method: 'DELETE' })
 }
 
 export type ApiClient = typeof api

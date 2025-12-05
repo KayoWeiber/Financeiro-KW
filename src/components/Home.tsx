@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import { LayoutDashboard, Calendar, ChevronRight, LogOut, ArrowRight } from 'lucide-react'
+import { LayoutDashboard, Calendar, ChevronRight, LogOut, ArrowRight, TrendingUp } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 
 type Competencia = { id: number | string; ano: number; mes: number; ativa?: boolean }
@@ -155,6 +155,29 @@ const Home: React.FC = () => {
                 <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dashboard Anual</h2>
                 <p className="text-slate-500 max-w-md">
                   Obtenha insights detalhados sobre suas finanças, acompanhe tendências e visualize o crescimento do seu patrimônio.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-full bg-white/80 p-3 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300">
+                <ArrowRight size={24} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Investimentos Banner */}
+        <div className="mb-10 group cursor-pointer" onClick={() => navigate('/investimentos')}>
+          <div className="glass-card rounded-3xl p-8 relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] border-l-4 border-l-primary/0 hover:border-l-primary">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-primary/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold uppercase tracking-wider mb-3">
+                  <TrendingUp size={14} />
+                  <span>Investimentos</span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Metas e Realizado</h2>
+                <p className="text-slate-500 max-w-md">
+                  Defina sua meta mensal e compare com o total investido do período.
                 </p>
               </div>
               <div className="shrink-0 rounded-full bg-white/80 p-3 shadow-sm group-hover:bg-primary group-hover:text-white transition-all duration-300">
