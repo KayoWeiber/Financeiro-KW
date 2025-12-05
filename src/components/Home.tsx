@@ -32,39 +32,46 @@ const Home: React.FC = () => {
         const currentYear = now.getFullYear()
         const currentMonth = now.getMonth() + 1 // 1-12
 
-        // Check for auto-activation
+        // Regra: somente o mês atual deve estar ativo
         const currentComp = comps.find(c => Number(c.ano) === currentYear && Number(c.mes) === currentMonth)
-        const activeComp = comps.find(c => c.ativa)
+        const activeComps = comps.filter(c => !!c.ativa)
 
-        if (currentComp && !currentComp.ativa && (!activeComp || Number(activeComp.mes) !== currentMonth || Number(activeComp.ano) !== currentYear)) {
-          // If current month exists but is not active, activate it
-          try {
-            // Explicitly deactivate the previous active one if it exists
-            if (activeComp) {
-              await api.updateCompetencia(activeComp.id, { ativa: false })
+        try {
+          // 1) Desativar todos os meses ativos que não sejam o mês atual
+          for (const ac of activeComps) {
+            const isCurrent = Number(ac.ano) === currentYear && Number(ac.mes) === currentMonth
+            if (!isCurrent) {
+              await api.updateCompetencia(ac.id, { ativa: false })
             }
+          }
 
+          // 2) Ativar o mês atual, criando/atualizando se necessário
+          if (currentComp) {
+            if (!currentComp.ativa) {
+              await api.updateCompetencia(currentComp.id, { ativa: true })
+            }
+          } else {
+            // Se não existir a competência do mês atual, cria/ativa via endpoint
             await api.ativarCompetencia({
               user_id: userId,
               ano: currentYear,
               mes: currentMonth,
               ativa: true
             })
-            // Re-fetch to ensure consistency
-            const updatedData = await api.getCompetencias(userId)
-            const updatedComps = Array.isArray(updatedData) ? updatedData as Competencia[] : []
-            setCompetencias(updatedComps)
-
-            setOpenYears({ [currentYear]: true })
-          } catch (err) {
-            console.error('Failed to auto-activate competence:', err)
-            // Fallback
-            const yearToOpen = activeComp ? Number(activeComp.ano) : currentYear
-            setOpenYears({ [yearToOpen]: true })
           }
-        } else {
-          // Normal behavior
-          const yearToOpen = activeComp ? Number(activeComp.ano) : currentYear
+
+          // 3) Recarregar lista para refletir mudanças
+          const updatedData = await api.getCompetencias(userId)
+          const updatedComps = Array.isArray(updatedData) ? updatedData as Competencia[] : []
+          setCompetencias(updatedComps)
+
+          // Abrir o ano do mês atual
+          setOpenYears({ [currentYear]: true })
+        } catch (err) {
+          console.error('Failed to enforce single active month:', err)
+          // Fallback: abrir ano do ativo, se houver; senão, do atual
+          const activeAny = activeComps[0]
+          const yearToOpen = activeAny ? Number(activeAny.ano) : currentYear
           setOpenYears({ [yearToOpen]: true })
         }
       } catch (e) {
@@ -118,7 +125,7 @@ const Home: React.FC = () => {
               <img src="/logo-kw-120-blue.png" alt="Logo" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl font-bold bg-linear-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
                 Bem-vindo(a)
               </h1>
               <p className="text-slate-500 text-sm font-medium">Financeiro KW</p>
@@ -137,7 +144,7 @@ const Home: React.FC = () => {
         {/* Dashboard Banner */}
         <div className="mb-10 group cursor-pointer" onClick={() => navigate('/dashboard')}>
           <div className="glass-card rounded-3xl p-8 relative overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01] border-l-4 border-l-primary/0 hover:border-l-primary">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-linear-to-br from-primary/10 to-transparent rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div>
@@ -185,7 +192,7 @@ const Home: React.FC = () => {
                     className="flex items-center gap-3 w-full group mb-4"
                   >
                     <h4 className="text-2xl font-bold text-slate-300 group-hover:text-primary transition-colors">{year}</h4>
-                    <div className="h-px flex-1 bg-gradient-to-r from-gray-200 to-transparent group-hover:from-primary/20 transition-all" />
+                    <div className="h-px flex-1 bg-linear-to-r from-gray-200 to-transparent group-hover:from-primary/20 transition-all" />
                     <ChevronRight size={20} className={`text-gray-300 group-hover:text-primary transition-all duration-300 ${openYears[year] ? 'rotate-90' : ''}`} />
                   </button>
 
@@ -231,7 +238,7 @@ const Home: React.FC = () => {
                             </div>
 
                             {/* Hover gradient overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                            <div className="absolute inset-0 bg-linear-to-tr from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                           </div>
                         )
                       })}
