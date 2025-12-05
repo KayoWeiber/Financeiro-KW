@@ -51,6 +51,8 @@ export const api = {
   getCompetencias: (userId: number | string) => request(`/competencias/${userId}`),
   updateCompetencia: (id: number | string, payload: { ativa: boolean }) =>
     request(`/competencias/${id}`, { method: 'PATCH', body: payload }),
+  ativarCompetencia: (payload: { user_id: number | string; ano: number; mes: number; ativa?: boolean }) =>
+    request('/competencias/ativar', { method: 'PATCH', body: payload }),
   deleteCompetencia: (id: number | string) => request(`/competencias/${id}`, { method: 'DELETE' }),
 
   // Entradas

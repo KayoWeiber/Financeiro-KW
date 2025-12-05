@@ -27,11 +27,46 @@ const Home: React.FC = () => {
         const comps = Array.isArray(data) ? data as Competencia[] : []
         setCompetencias(comps)
 
-        // Find active competence or default to current year
-        const activeComp = comps.find(c => c.ativa)
-        const yearToOpen = activeComp ? Number(activeComp.ano) : new Date().getFullYear()
+        // Auto-open current year
+        const now = new Date()
+        const currentYear = now.getFullYear()
+        const currentMonth = now.getMonth() + 1 // 1-12
 
-        setOpenYears({ [yearToOpen]: true })
+        // Check for auto-activation
+        const currentComp = comps.find(c => Number(c.ano) === currentYear && Number(c.mes) === currentMonth)
+        const activeComp = comps.find(c => c.ativa)
+
+        if (currentComp && !currentComp.ativa && (!activeComp || Number(activeComp.mes) !== currentMonth || Number(activeComp.ano) !== currentYear)) {
+          // If current month exists but is not active, activate it
+          try {
+            // Explicitly deactivate the previous active one if it exists
+            if (activeComp) {
+              await api.updateCompetencia(activeComp.id, { ativa: false })
+            }
+
+            await api.ativarCompetencia({
+              user_id: userId,
+              ano: currentYear,
+              mes: currentMonth,
+              ativa: true
+            })
+            // Re-fetch to ensure consistency
+            const updatedData = await api.getCompetencias(userId)
+            const updatedComps = Array.isArray(updatedData) ? updatedData as Competencia[] : []
+            setCompetencias(updatedComps)
+
+            setOpenYears({ [currentYear]: true })
+          } catch (err) {
+            console.error('Failed to auto-activate competence:', err)
+            // Fallback
+            const yearToOpen = activeComp ? Number(activeComp.ano) : currentYear
+            setOpenYears({ [yearToOpen]: true })
+          }
+        } else {
+          // Normal behavior
+          const yearToOpen = activeComp ? Number(activeComp.ano) : currentYear
+          setOpenYears({ [yearToOpen]: true })
+        }
       } catch (e) {
         const msg = e instanceof Error ? e.message : 'Falha ao carregar competências'
         setError(msg)
