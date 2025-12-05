@@ -6,6 +6,7 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import CompetenciaView from './components/CompetenciaView';
 import ProtectedRoute from './components/ProtectedRoute';
+import Investimentos from './components/Investimentos';
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route element={<ProtectedRoute />}> 
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/investimentos" element={<Investimentos />} />
           <Route path="/competencia/:id" element={<CompetenciaView />} />
           <Route path="*" element={<NotFound />} />
         </Route>
